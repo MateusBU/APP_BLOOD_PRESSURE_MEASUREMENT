@@ -18,8 +18,12 @@ class ScanResultTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            result.device.localName,
+            result.device.localName.toUpperCase(),
             overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.cyanAccent[700],
+            ),
           ),
           Text(
             result.device.remoteId.toString(),
@@ -28,7 +32,13 @@ class ScanResultTile extends StatelessWidget {
         ],
       );
     } else {
-      return Text(result.device.remoteId.toString());
+      return Text(
+        result.device.remoteId.toString(),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Colors.cyanAccent[700],
+        ),
+      );
     }
   }
 
@@ -82,30 +92,39 @@ class ScanResultTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ExpansionTile(
-      title: _buildTitle(context),
-      leading: Text(result.rssi.toString()),
-      trailing: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          onPrimary: Colors.black,
-          onSurface: Colors.white,
+    if(result.advertisementData.connectable){
+      return ExpansionTile(
+        title: _buildTitle(context),
+        //leading: Text(result.rssi.toString()),
+        trailing: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            onPrimary: const Color.fromARGB(255, 255, 255, 255),
+            elevation: 5,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          onPressed: (result.advertisementData.connectable) ? onTap : null,
+            child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            child: const Text('CONECTAR'),
+          ),
         ),
-        onPressed: (result.advertisementData.connectable) ? onTap : null,
-        child: const Text('CONNECT'),
-      ),
-      children: <Widget>[
-        _buildAdvRow(context, 'Complete Local Name', result.advertisementData.localName),
-        _buildAdvRow(context, 'Tx Power Level', '${result.advertisementData.txPowerLevel ?? 'N/A'}'),
-        _buildAdvRow(context, 'Manufacturer Data', getNiceManufacturerData(result.advertisementData.manufacturerData)),
-        _buildAdvRow(
-            context,
-            'Service UUIDs',
-            (result.advertisementData.serviceUuids.isNotEmpty)
-                ? result.advertisementData.serviceUuids.join(', ').toUpperCase()
-                : 'N/A'),
-        _buildAdvRow(context, 'Service Data', getNiceServiceData(result.advertisementData.serviceData)),
-      ],
-    );
+        // children: <Widget>[
+        //   _buildAdvRow(context, 'Complete Local Name', result.advertisementData.localName),
+        //   _buildAdvRow(context, 'Tx Power Level', '${result.advertisementData.txPowerLevel ?? 'N/A'}'),
+        //   _buildAdvRow(context, 'Manufacturer Data', getNiceManufacturerData(result.advertisementData.manufacturerData)),
+        //   _buildAdvRow(
+        //       context,
+        //       'Service UUIDs',
+        //       (result.advertisementData.serviceUuids.isNotEmpty)
+        //           ? result.advertisementData.serviceUuids.join(', ').toUpperCase()
+        //           : 'N/A'),
+        //   _buildAdvRow(context, 'Service Data', getNiceServiceData(result.advertisementData.serviceData)),
+        // ],
+      );
+    }
+    return const SizedBox();
   }
 }
 

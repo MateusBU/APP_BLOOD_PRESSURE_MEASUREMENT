@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:app_blood_pressure_measurement/screens/main_device_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -160,7 +161,13 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                     return ElevatedButton(
                                       child: const Text('OPEN'),
                                       onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                                          builder: (context) => DeviceScreen(device: d),
+                                          builder: (context) => MainDeviceScreen(
+                                            device: d,
+                                            is_connecting_or_disconnecting : isConnectingOrDisconnecting,
+                                            snack_bar_key_A: snackBarKeyA,
+                                            snack_bar_key_B :snackBarKeyB, 
+                                            snack_bar_key_C: snackBarKeyC
+                                          ),
                                           settings: const RouteSettings(name: '/deviceScreen'))),
                                     );
                                   }
@@ -180,7 +187,13 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                                   isConnectingOrDisconnecting[d.remoteId] ??= ValueNotifier(false);
                                                   isConnectingOrDisconnecting[d.remoteId]!.value = false;
                                                 });
-                                                return DeviceScreen(device: d);
+                                                return MainDeviceScreen(
+                                                  device: d,
+                                                  is_connecting_or_disconnecting : isConnectingOrDisconnecting,
+                                                  snack_bar_key_A: snackBarKeyA,
+                                                  snack_bar_key_B :snackBarKeyB, 
+                                                  snack_bar_key_C: snackBarKeyC
+                                                );
                                               },
                                               settings: const RouteSettings(name: '/deviceScreen')));
                                         });
@@ -202,7 +215,8 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
       key: snackBarKeyB,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Find Devices'),
+          centerTitle: true,
+          title: const Text('MEDIÇÃO DE PRESSÃO ARTERIAL',textAlign: TextAlign.center),
         ),
         body: RefreshIndicator(
           onRefresh: () {
@@ -236,7 +250,13 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                     isConnectingOrDisconnecting[r.device.remoteId] ??= ValueNotifier(false);
                                     isConnectingOrDisconnecting[r.device.remoteId]!.value = false;
                                   });
-                                  return DeviceScreen(device: r.device);
+                                  return MainDeviceScreen(
+                                    device: r.device,
+                                    is_connecting_or_disconnecting : isConnectingOrDisconnecting,
+                                    snack_bar_key_A: snackBarKeyA,
+                                    snack_bar_key_B :snackBarKeyB, 
+                                    snack_bar_key_C: snackBarKeyC
+                                  );
                                 },
                                 settings: const RouteSettings(name: '/deviceScreen'))),
                           ),
@@ -253,7 +273,7 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
           initialData: false,
           builder: (c, snapshot) {
             if (snapshot.data ?? false) {
-              return FloatingActionButton(
+              return FloatingActionButton.extended(
                 onPressed: () async {
                   try {
                     FlutterBluePlus.stopScan();
@@ -264,11 +284,13 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                   }
                 },
                 backgroundColor: Colors.red,
-                child: const Icon(Icons.stop),
+                icon: const Icon(Icons.stop),
+                label: const Text("PARAR"),
               );
             } else {
-              return FloatingActionButton(
-                  child: const Text("SCAN"),
+              return FloatingActionButton.extended(
+                  icon: const Icon(Icons.search_outlined),
+                  label: const Text("ESCANEAR"),
                   onPressed: () async {
                     try {
                       if (FlutterBluePlus.isScanningNow == false) {
@@ -297,6 +319,19 @@ class DeviceScreen extends StatelessWidget {
   List<int> _getRandomBytes() {
     final math = Random();
     return [math.nextInt(255), math.nextInt(255), math.nextInt(255), math.nextInt(255)];
+  }
+
+  initState() async{
+    try {
+      await device.discoverServices();
+      final snackBar = snackBarGood("Discover Services: Success");
+      snackBarKeyC.currentState?.removeCurrentSnackBar();
+      snackBarKeyC.currentState?.showSnackBar(snackBar);
+    } catch (e) {
+      final snackBar = snackBarFail(prettyException("Discover Services Error:", e));
+      snackBarKeyC.currentState?.removeCurrentSnackBar();
+      snackBarKeyC.currentState?.showSnackBar(snackBar);
+    }
   }
 
   List<Widget> _buildServiceTiles(BuildContext context, List<BluetoothService> services) {
