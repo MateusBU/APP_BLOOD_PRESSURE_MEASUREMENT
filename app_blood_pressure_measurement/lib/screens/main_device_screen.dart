@@ -8,6 +8,7 @@ class MainDeviceScreen extends StatefulWidget {
   GlobalKey<ScaffoldMessengerState> snack_bar_key_A;
   GlobalKey<ScaffoldMessengerState> snack_bar_key_B;
   GlobalKey<ScaffoldMessengerState> snack_bar_key_C;
+  List<BluetoothCharacteristic>? serviceTest; 
 
   MainDeviceScreen(
     {
@@ -25,6 +26,32 @@ class MainDeviceScreen extends StatefulWidget {
 }
 
 class _MainDeviceScreenState extends State<MainDeviceScreen> {
+
+  @override
+  void initState () {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_){
+      _asyncMethod();
+    });
+  }
+
+  _asyncMethod() async {
+    try {
+      await connectToDevice(context);
+      await widget.device.discoverServices();
+      getListOfCharacteristic();
+      final snackBar = snackBarGoodDeviceScreen("Discover Services: Success");
+      widget.snack_bar_key_C.currentState?.removeCurrentSnackBar();
+      widget.snack_bar_key_C.currentState?.showSnackBar(snackBar);
+      print("Success");
+      } catch (e) {
+      final snackBar = snackBarFailDeviceScreen(prettyExceptionDeviceScreen("Discover Services Error:", e));
+      widget.snack_bar_key_C.currentState?.removeCurrentSnackBar();
+      widget.snack_bar_key_C.currentState?.showSnackBar(snackBar);
+      print("Fail");
+    }
+  }
+
   SnackBar snackBarGoodDeviceScreen(String message) {
     return SnackBar(content: Text(message), backgroundColor: Colors.blue);
   }
@@ -33,48 +60,95 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
     return SnackBar(content: Text(message), backgroundColor: Colors.red);
   }
 
-String prettyExceptionDeviceScreen(String prefix, dynamic e) {
-  if (e is FlutterBluePlusException) {
-    return "$prefix ${e.description}";
-  } else if (e is PlatformException) {
-    return "$prefix ${e.message}";
+  String prettyExceptionDeviceScreen(String prefix, dynamic e) {
+    if (e is FlutterBluePlusException) {
+      return "$prefix ${e.description}";
+    } else if (e is PlatformException) {
+      return "$prefix ${e.message}";
+    }
+    return prefix + e.toString();
   }
-  return prefix + e.toString();
-}
 
-Future<void> desconnectToDevice(BuildContext context)async{
+  void getListOfCharacteristic(){
+    for(var s in widget.device.servicesList!){
+      for(var c in s.characteristics){
+        print(c.characteristicUuid);
+
+      }
+      widget.serviceTest = s.characteristics.where(
+        (element) {
+          if(element.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
+            element.write([0x42,0x4c,0x4f,0x4f,0x44], withoutResponse: element.properties.writeWithoutResponse);
+            return true;
+          }
+          else if(element.characteristicUuid.toString() == "86d3ac32-8756-11e7-bb31-be2e44b06b34"){
+            //element.setNotifyValue(element.isNotifying == false);
+            return true;
+          }
+          return false;
+        }
+        ).toList();
+    }
+      
+  }
+
+  Future<void> desconnectToDevice(BuildContext context)async{
+      widget.is_connecting_or_disconnecting[widget.device.remoteId] ??= ValueNotifier(true);
+      widget.is_connecting_or_disconnecting[widget.device.remoteId]!.value = true;
+      try {
+        await widget.device.disconnect();
+        final snackBar = snackBarGoodDeviceScreen("Disconnect: Success");
+        widget.snack_bar_key_C.currentState?.removeCurrentSnackBar();
+        widget.snack_bar_key_C.currentState?.showSnackBar(snackBar);
+      } catch (e) {
+        final snackBar = snackBarFailDeviceScreen(prettyExceptionDeviceScreen("Disconnect Error:", e));
+        widget.snack_bar_key_C.currentState?.removeCurrentSnackBar();
+        widget.snack_bar_key_C.currentState?.showSnackBar(snackBar);
+      }
+      widget.is_connecting_or_disconnecting[widget.device.remoteId] ??= ValueNotifier(false);
+      widget.is_connecting_or_disconnecting[widget.device.remoteId]!.value = false;
+  }
+
+  Future<void> connectToDevice(BuildContext context)async{
     widget.is_connecting_or_disconnecting[widget.device.remoteId] ??= ValueNotifier(true);
     widget.is_connecting_or_disconnecting[widget.device.remoteId]!.value = true;
     try {
-      await widget.device.disconnect();
-      final snackBar = snackBarGoodDeviceScreen("Disconnect: Success");
+      await widget.device.connect(timeout: const Duration(seconds: 35));
+      final snackBar = snackBarGoodDeviceScreen("Connect: Success");
       widget.snack_bar_key_C.currentState?.removeCurrentSnackBar();
       widget.snack_bar_key_C.currentState?.showSnackBar(snackBar);
     } catch (e) {
-      final snackBar = snackBarFailDeviceScreen(prettyExceptionDeviceScreen("Disconnect Error:", e));
+      final snackBar = snackBarFailDeviceScreen(prettyExceptionDeviceScreen("Connect Error:", e));
       widget.snack_bar_key_C.currentState?.removeCurrentSnackBar();
       widget.snack_bar_key_C.currentState?.showSnackBar(snackBar);
-    }
+      }
     widget.is_connecting_or_disconnecting[widget.device.remoteId] ??= ValueNotifier(false);
     widget.is_connecting_or_disconnecting[widget.device.remoteId]!.value = false;
-}
-
-Future<void> connectToDevice(BuildContext context)async{
-  widget.is_connecting_or_disconnecting[widget.device.remoteId] ??= ValueNotifier(true);
-  widget.is_connecting_or_disconnecting[widget.device.remoteId]!.value = true;
-  try {
-  await widget.device.connect(timeout: const Duration(seconds: 35));
-  final snackBar = snackBarGoodDeviceScreen("Connect: Success");
-  widget.snack_bar_key_C.currentState?.removeCurrentSnackBar();
-  widget.snack_bar_key_C.currentState?.showSnackBar(snackBar);
-  } catch (e) {
-  final snackBar = snackBarFailDeviceScreen(prettyExceptionDeviceScreen("Connect Error:", e));
-  widget.snack_bar_key_C.currentState?.removeCurrentSnackBar();
-  widget.snack_bar_key_C.currentState?.showSnackBar(snackBar);
   }
-  widget.is_connecting_or_disconnecting[widget.device.remoteId] ??= ValueNotifier(false);
-  widget.is_connecting_or_disconnecting[widget.device.remoteId]!.value = false;
-}
+
+  void pressedStart(BuildContext context){
+    for(BluetoothCharacteristic c in widget.serviceTest!){
+      if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
+        c.write([0x53,0x54,0x41,0x52,0x54], withoutResponse: c.properties.writeWithoutResponse);
+      }
+    }
+  }
+
+  void calibrateSensor(BuildContext context){
+    for(BluetoothCharacteristic c in widget.serviceTest!){
+      if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
+        c.write([0x43,0x41,0x4c,0x49,0x42,0x52,0x41,0x54,0x45], withoutResponse: c.properties.writeWithoutResponse);
+      }
+    }
+  }
+
+  void SendBPData(BuildContext context){
+    for(BluetoothCharacteristic c in widget.serviceTest!){
+      if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
+        c.write([0x42,0x50], withoutResponse: c.properties.writeWithoutResponse);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,40 +169,12 @@ Future<void> connectToDevice(BuildContext context)async{
                   case BluetoothConnectionState.connected:
                     onPressed = () async {
                       await desconnectToDevice(context);
-                      // is_connecting_or_disconnecting[device.remoteId] ??= ValueNotifier(true);
-                      // is_connecting_or_disconnecting[device.remoteId]!.value = true;
-                      // try {
-                      //   await device.disconnect();
-                      //   final snackBar = snackBarGoodDeviceScreen("Disconnect: Success");
-                      //   snack_bar_key_C.currentState?.removeCurrentSnackBar();
-                      //   snack_bar_key_C.currentState?.showSnackBar(snackBar);
-                      // } catch (e) {
-                      //   final snackBar = snackBarFailDeviceScreen(prettyExceptionDeviceScreen("Disconnect Error:", e));
-                      //   snack_bar_key_C.currentState?.removeCurrentSnackBar();
-                      //   snack_bar_key_C.currentState?.showSnackBar(snackBar);
-                      // }
-                      // is_connecting_or_disconnecting[device.remoteId] ??= ValueNotifier(false);
-                      // is_connecting_or_disconnecting[device.remoteId]!.value = false;
                     };
                     text = 'DESCONECTAR';
                     break;
                   case BluetoothConnectionState.disconnected:
                     onPressed = () async {
                       await connectToDevice(context);
-                      // is_connecting_or_disconnecting[device.remoteId] ??= ValueNotifier(true);
-                      // is_connecting_or_disconnecting[device.remoteId]!.value = true;
-                      // try {
-                      //   await device.connect(timeout: const Duration(seconds: 35));
-                      //   final snackBar = snackBarGoodDeviceScreen("Connect: Success");
-                      //   snack_bar_key_C.currentState?.removeCurrentSnackBar();
-                      //   snack_bar_key_C.currentState?.showSnackBar(snackBar);
-                      // } catch (e) {
-                      //   final snackBar = snackBarFailDeviceScreen(prettyExceptionDeviceScreen("Connect Error:", e));
-                      //   snack_bar_key_C.currentState?.removeCurrentSnackBar();
-                      //   snack_bar_key_C.currentState?.showSnackBar(snackBar);
-                      // }
-                      // is_connecting_or_disconnecting[device.remoteId] ??= ValueNotifier(false);
-                      // is_connecting_or_disconnecting[device.remoteId]!.value = false;
                     };
                     text = 'CONECTAR';
                     break;
@@ -168,6 +214,33 @@ Future<void> connectToDevice(BuildContext context)async{
               }),
             ),
           ],
+        ),
+        body: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 100),
+              ElevatedButton(
+                onPressed: () => pressedStart(context),
+                child: const Text("Start"),
+              ),
+              const SizedBox(height: 40),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  ElevatedButton(
+                    onPressed: () => SendBPData(context),
+                    child: const Text("Enviar Dados"),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => calibrateSensor(context),
+                    child: const Text("Calibrar"),
+                  ),
+                ],
+              ),
+              const Text("Characteristic"),
+            ],
+          ),
         ),
       ),
     );

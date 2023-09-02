@@ -6,12 +6,12 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:app_blood_pressure_measurement/screens/main_device_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'screens/main_device_screen.dart';
 import 'widgets.dart';
 
 final snackBarKeyA = GlobalKey<ScaffoldMessengerState>();
@@ -168,6 +168,7 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                             snack_bar_key_B :snackBarKeyB, 
                                             snack_bar_key_C: snackBarKeyC
                                           ),
+                                          // builder:  (context) => DeviceScreen(device: d),
                                           settings: const RouteSettings(name: '/deviceScreen'))),
                                     );
                                   }
@@ -194,6 +195,7 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                                   snack_bar_key_B :snackBarKeyB, 
                                                   snack_bar_key_C: snackBarKeyC
                                                 );
+                                                // return DeviceScreen(device: d);
                                               },
                                               settings: const RouteSettings(name: '/deviceScreen')));
                                         });
@@ -257,6 +259,7 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                     snack_bar_key_B :snackBarKeyB, 
                                     snack_bar_key_C: snackBarKeyC
                                   );
+                                  // return DeviceScreen(device: r.device);
                                 },
                                 settings: const RouteSettings(name: '/deviceScreen'))),
                           ),
@@ -335,6 +338,26 @@ class DeviceScreen extends StatelessWidget {
   }
 
   List<Widget> _buildServiceTiles(BuildContext context, List<BluetoothService> services) {
+
+    List<BluetoothCharacteristic>? serviceTest; 
+    for (var s in services) {
+      //print(s.characteristics);
+      for(var c in s.characteristics){
+        print(c.characteristicUuid);
+        //List<BluetoothCharacteristic > service_test =;
+      }
+      serviceTest = s.characteristics.where(
+        (element) {
+          if(element.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
+            print(element.characteristicUuid.toString());
+            element.write([0x1,0x3,0x4], withoutResponse: element.properties.writeWithoutResponse);
+            return true;
+          }
+          return false;
+        }
+        ).toList();
+    }
+    print(serviceTest!.length);
     return services
         .map(
           (s) => ServiceTile(
@@ -357,8 +380,9 @@ class DeviceScreen extends StatelessWidget {
                     },
                     onWritePressed: () async {
                       try {
-                        await c.write(_getRandomBytes(), withoutResponse: c.properties.writeWithoutResponse);
+                        await c.write([0x1,0x2], withoutResponse: c.properties.writeWithoutResponse);
                         final snackBar = snackBarGood("Write: Success");
+                        print("${c.characteristicUuid}");
                         snackBarKeyC.currentState?.removeCurrentSnackBar();
                         snackBarKeyC.currentState?.showSnackBar(snackBar);
                         if (c.properties.read) {
