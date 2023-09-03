@@ -9,6 +9,11 @@ class MainDeviceScreen extends StatefulWidget {
   GlobalKey<ScaffoldMessengerState> snack_bar_key_B;
   GlobalKey<ScaffoldMessengerState> snack_bar_key_C;
   List<BluetoothCharacteristic>? serviceTest; 
+  final String _selectedMenuItem = 'None';
+  bool _isTextFieldVisible = false;
+  final TextEditingController _controllerDBP = TextEditingController();
+  final TextEditingController _controllerSBP = TextEditingController();
+  //final FocusNode _focusNode = FocusNode();
 
   MainDeviceScreen(
     {
@@ -69,6 +74,26 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
     return prefix + e.toString();
   }
 
+    List<int> separateNumberToList(int number) {
+    // Convert the number to a string
+    String numberAsString = number.toString();
+    
+    // Use the split method to get a list of individual digit characters
+    List<String> digitCharacters = numberAsString.split('');
+    
+    // Convert the list of digit characters back to integers
+    List<int> digitList = digitCharacters.map((char) => int.parse(char)).toList();
+    
+    return digitList;
+  }
+
+  setBloodPressureArray(List<int> listOfDBP, List<int> listOfSBP){
+    List<int> bloodPressureArray = [];
+
+    
+    return bloodPressureArray;
+  }
+
   void getListOfCharacteristic(){
     for(var s in widget.device.servicesList!){
       for(var c in s.characteristics){
@@ -127,25 +152,70 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
   }
 
   void pressedStart(BuildContext context){
+    List<int> sendStartArray = [0x02, 0x70, 0x62, 0x41, 0x35, 0x31, 0x03];
     for(BluetoothCharacteristic c in widget.serviceTest!){
       if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
-        c.write([0x53,0x54,0x41,0x52,0x54], withoutResponse: c.properties.writeWithoutResponse);
+        c.write(sendStartArray, withoutResponse: c.properties.writeWithoutResponse);
       }
     }
   }
 
   void calibrateSensor(BuildContext context){
-    for(BluetoothCharacteristic c in widget.serviceTest!){
-      if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
-        c.write([0x43,0x41,0x4c,0x49,0x42,0x52,0x41,0x54,0x45], withoutResponse: c.properties.writeWithoutResponse);
-      }
-    }
+    showMenu(
+      context: context,
+      position: const RelativeRect.fromLTRB(25, 25, 0, 0),
+      items: <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: '60',
+                child: Text('60'),
+              ),
+              const PopupMenuItem<String>(
+                value: '200',
+                child: Text('200'),
+              ),
+      ]
+    ).then((value){
+        if(value != null){
+          //_handleMenuItemSelection = value;
+          List<int> sendCalibrateArray;
+          if(value == '60'){
+            sendCalibrateArray = [0x02, 0x70, 0x62, 0x44, 0x35, 0x32, 0x03];
+          }
+          else{
+            sendCalibrateArray = [0x02, 0x70, 0x62, 0x45, 0x35, 0x32, 0x03];
+          }
+          for(BluetoothCharacteristic c in widget.serviceTest!){
+            if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
+              c.write(sendCalibrateArray, withoutResponse: c.properties.writeWithoutResponse);
+            }
+          }
+        }
+      }     
+    );
+    // List<int> sendCalibrateArray = [0x02, 0x70, 0x62, 0x42, 0x35, 0x32, 0x03];
+    // for(BluetoothCharacteristic c in widget.serviceTest!){
+    //   if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
+    //     c.write(sendCalibrateArray, withoutResponse: c.properties.writeWithoutResponse);
+    //   }
+    // }
   }
 
   void SendBPData(BuildContext context){
+    List<int> listOfDBP = [];
+    List<int> listOfSBP = [];
+    List<int> sendBloodpressureArray = [];
+    if(widget._controllerDBP.text != '') {
+      listOfDBP =separateNumberToList(int.parse(widget._controllerDBP.text));
+    }
+    if(widget._controllerSBP.text != '') {
+      listOfSBP =separateNumberToList(int.parse(widget._controllerSBP.text));
+    }
+
+    sendBloodpressureArray = setBloodPressureArray(listOfDBP, listOfSBP);
+
     for(BluetoothCharacteristic c in widget.serviceTest!){
       if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
-        c.write([0x42,0x50], withoutResponse: c.properties.writeWithoutResponse);
+        c.write(sendBloodpressureArray, withoutResponse: c.properties.writeWithoutResponse);
       }
     }
   }
@@ -222,7 +292,21 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
               const SizedBox(height: 100),
               ElevatedButton(
                 onPressed: () => pressedStart(context),
-                child: const Text("Start"),
+                child: const Text("Começar"),
+              ),
+              const SizedBox(height: 40),
+              ElevatedButton(
+                onPressed: (() {
+                  setState(() {
+                    if(widget._isTextFieldVisible){
+                      widget._isTextFieldVisible = false;                  
+                    }
+                    else {
+                      widget._isTextFieldVisible = true;
+                    } 
+                  });
+                }),
+                child: const Text("Valores de pressão"),
               ),
               const SizedBox(height: 40),
               Row(
@@ -238,7 +322,39 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
                   ),
                 ],
               ),
-              const Text("Characteristic"),
+              if(widget._isTextFieldVisible)
+                Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: TextFormField(
+                        controller: widget._controllerDBP,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: <TextInputFormatter>[
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+                        ],
+                        decoration: const InputDecoration(
+                          labelText: 'Valor da Pressão Arterial Distólica',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: TextFormField(
+                        controller: widget._controllerSBP,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: <TextInputFormatter>[
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+                        ],
+                        decoration: const InputDecoration(
+                          labelText: 'Valor da Pressão Arterial Sistólica',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                  ],  
+                ),
             ],
           ),
         ),
