@@ -169,7 +169,9 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                             snackBarKeyC: snackBarKeyC
                                           ),
                                           // builder:  (context) => DeviceScreen(device: d),
-                                          settings: const RouteSettings(name: '/deviceScreen'))),
+                                          settings: const RouteSettings(name: '/deviceScreen')
+                                        )
+                                      ),
                                     );
                                   }
                                   if (snapshot.data == BluetoothConnectionState.disconnected) {

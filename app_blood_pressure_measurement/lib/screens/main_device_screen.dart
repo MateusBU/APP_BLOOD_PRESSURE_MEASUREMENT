@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'blood_pressure_screen.dart';
+
 class MainDeviceScreen extends StatefulWidget {
   final BluetoothDevice device;
   final Map<DeviceIdentifier, ValueNotifier<bool>> isConnectingOrDisconnecting;
@@ -44,6 +46,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
       _asyncMethod();
       _getValueBP();
     });
+
   }
 
   _asyncMethod() async {
@@ -236,7 +239,12 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
         c.write(sendStartArray, withoutResponse: c.properties.writeWithoutResponse);
       }
     }
-  }
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) => const BloodPressureScreen(),
+      // builder:  (context) => DeviceScreen(device: d),
+      settings: const RouteSettings(name: '/BloodPressureScreen')
+    ));                                      // builder:  (context) => DeviceScreen(device: d),
+    }
 
   void calibrateSensor(BuildContext context){
     //start calibrate
@@ -334,7 +342,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
           actions: <Widget>[
             StreamBuilder<BluetoothConnectionState>(
               stream: widget.device.connectionState,
-              initialData: BluetoothConnectionState.connecting,
+              initialData: BluetoothConnectionState.disconnected,
               builder: ((c, snapshot) {
                 VoidCallback? onPressed;
                 String text;
