@@ -163,10 +163,10 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                       onPressed: () => Navigator.of(context).push(MaterialPageRoute(
                                           builder: (context) => MainDeviceScreen(
                                             device: d,
-                                            is_connecting_or_disconnecting : isConnectingOrDisconnecting,
-                                            snack_bar_key_A: snackBarKeyA,
-                                            snack_bar_key_B :snackBarKeyB, 
-                                            snack_bar_key_C: snackBarKeyC
+                                            isConnectingOrDisconnecting : isConnectingOrDisconnecting,
+                                            snackBarKeyA: snackBarKeyA,
+                                            snackBarKeyB :snackBarKeyB, 
+                                            snackBarKeyC: snackBarKeyC
                                           ),
                                           // builder:  (context) => DeviceScreen(device: d),
                                           settings: const RouteSettings(name: '/deviceScreen'))),
@@ -190,10 +190,10 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                                 });
                                                 return MainDeviceScreen(
                                                   device: d,
-                                                  is_connecting_or_disconnecting : isConnectingOrDisconnecting,
-                                                  snack_bar_key_A: snackBarKeyA,
-                                                  snack_bar_key_B :snackBarKeyB, 
-                                                  snack_bar_key_C: snackBarKeyC
+                                                  isConnectingOrDisconnecting : isConnectingOrDisconnecting,
+                                                  snackBarKeyA: snackBarKeyA,
+                                                  snackBarKeyB :snackBarKeyB, 
+                                                  snackBarKeyC: snackBarKeyC
                                                 );
                                                 // return DeviceScreen(device: d);
                                               },
@@ -254,10 +254,10 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                   });
                                   return MainDeviceScreen(
                                     device: r.device,
-                                    is_connecting_or_disconnecting : isConnectingOrDisconnecting,
-                                    snack_bar_key_A: snackBarKeyA,
-                                    snack_bar_key_B :snackBarKeyB, 
-                                    snack_bar_key_C: snackBarKeyC
+                                    isConnectingOrDisconnecting : isConnectingOrDisconnecting,
+                                    snackBarKeyA: snackBarKeyA,
+                                    snackBarKeyB :snackBarKeyB, 
+                                    snackBarKeyC: snackBarKeyC
                                   );
                                   // return DeviceScreen(device: r.device);
                                 },
