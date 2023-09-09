@@ -37,6 +37,7 @@ dependencies:
   flutter_blue_plus: ^1.14.11
   permission_handler: ^10.4.3
   shared_preferences: ^2.0.18
+  fl_chart: ^0.63.0
 
   
 dev_dependencies:

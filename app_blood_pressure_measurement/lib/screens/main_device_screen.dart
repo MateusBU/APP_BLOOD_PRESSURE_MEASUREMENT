@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
 
 import 'blood_pressure_screen.dart';
 
 class MainDeviceScreen extends StatefulWidget {
   final BluetoothDevice device;
   final Map<DeviceIdentifier, ValueNotifier<bool>> isConnectingOrDisconnecting;
-  GlobalKey<ScaffoldMessengerState> snackBarKeyA;
-  GlobalKey<ScaffoldMessengerState> snackBarKeyB;
-  GlobalKey<ScaffoldMessengerState> snackBarKeyC;
-  List<BluetoothCharacteristic>? serviceTest; 
-  final String _selectedMenuItem = 'None';
+  final GlobalKey<ScaffoldMessengerState> snackBarKeyA;
+  final GlobalKey<ScaffoldMessengerState> snackBarKeyB;
+  final GlobalKey<ScaffoldMessengerState> snackBarKeyC;
+  List<BluetoothCharacteristic>? serviceTest;
   bool _isTextFieldVisible = false;
   final TextEditingController _controllerDBP = TextEditingController();
   final TextEditingController _controllerSBP = TextEditingController();
@@ -39,6 +39,9 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
   String valueDefaultBPS = '0';
   String valueDefaultBPD = '0';
 
+
+
+
   @override
   void initState () {
     super.initState();
@@ -46,25 +49,21 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
       _asyncMethod();
       _getValueBP();
     });
-
+  //   Timer.periodic(const Duration(seconds: 60), (Timer timer) {
+  //   isDisconected(); // Call your function here
+  // });
   }
 
   _asyncMethod() async {
     try {
       await connectToDevice(context);
+      if(!mounted) {
+        return;
+      }
       setState(() {
         widget._disconnected = false;      
       });
-      // await widget.device.discoverServices();
-      // getListOfCharacteristic();
-      // final snackBar = snackBarGoodDeviceScreen("Discover Services: Success");
-      // widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
-      // widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
-      // print("Success");
       } catch (e) {
-      // final snackBar = snackBarFailDeviceScreen(prettyExceptionDeviceScreen("Discover Services Error:", e));
-      // widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
-      // widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
       print("Fail");
     }
   }
@@ -327,8 +326,25 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
     }
   }
 
-  bool isDisconected(BuildContext context){
-    return widget._disconnected;
+  void isDisconected(){
+
+    final Stream<BluetoothConnectionState> connectionStream = widget.device.connectionState;
+
+  connectionStream.listen((BluetoothConnectionState state) {
+    // Handle the emitted state using a switch statement.
+    switch (state) {
+      case BluetoothConnectionState.connected:
+        widget._disconnected = false;
+        break;
+      case BluetoothConnectionState.disconnected:
+        widget._disconnected = true;
+        break;
+      default:
+        widget._disconnected = false;
+        break;
+    }
+    setState(() {});
+  });
   }
 
   @override
@@ -339,6 +355,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
         appBar: AppBar(
           centerTitle: true,
           title: Text(widget.device.localName.toUpperCase()),
+          backgroundColor: const Color.fromARGB(255, 229, 156, 255),
           actions: <Widget>[
             StreamBuilder<BluetoothConnectionState>(
               stream: widget.device.connectionState,
@@ -349,18 +366,12 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
                 switch(snapshot.data){
                   case BluetoothConnectionState.connected:
                     onPressed = () async {
-                      setState(() {
-                        widget._disconnected = true;                    
-                      });
                       await desconnectToDevice(context);
                     };
                     text = 'DESCONECTAR';
                     break;
                   case BluetoothConnectionState.disconnected:
                     onPressed = () async {
-                      setState(() {
-                        widget._disconnected = false;                    
-                      });
                       await connectToDevice(context);
                     };
                     text = 'CONECTAR';
@@ -392,7 +403,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
                         onPressed: onPressed,
                         child: Text(
                           text,
-                          style: Theme.of(context).primaryTextTheme.labelLarge?.copyWith(color: Colors.white),
+                          style: Theme.of(context).primaryTextTheme.labelLarge?.copyWith(color: const Color.fromARGB(255, 0, 13, 129)),
                         )
                       );
                     }
@@ -402,7 +413,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
             ),
           ],
         ),
-        body: isDisconected(context) ?
+        body: widget._disconnected ?
         Center(
           child: Container(
             decoration: BoxDecoration(

@@ -1,7 +1,7 @@
 // Copyright 2023, Charles Weinberger & Paul DeMarco.
 // All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
@@ -98,7 +98,7 @@ class ScanResultTile extends StatelessWidget {
         //leading: Text(result.rssi.toString()),
         trailing: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            onPrimary: const Color.fromARGB(255, 255, 255, 255),
+            foregroundColor: const Color.fromARGB(255, 73, 2, 111),
             elevation: 5,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),

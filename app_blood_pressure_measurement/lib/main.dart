@@ -159,7 +159,12 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                 builder: (c, snapshot) {
                                   if (snapshot.data == BluetoothConnectionState.connected) {
                                     return ElevatedButton(
-                                      child: const Text('OPEN'),
+                                      child: const 
+                                        Text('ABRIR',
+                                          style: TextStyle(
+                                            color: Color.fromARGB(255, 0, 0, 0)
+                                          ),
+                                        ),
                                       onPressed: () => Navigator.of(context).push(MaterialPageRoute(
                                           builder: (context) => MainDeviceScreen(
                                             device: d,
@@ -176,7 +181,16 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                   }
                                   if (snapshot.data == BluetoothConnectionState.disconnected) {
                                     return ElevatedButton(
-                                        child: const Text('CONNECT'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+                                        foregroundColor: const Color.fromARGB(255, 0, 0, 0), 
+                                      ),
+                                        child: const 
+                                          Text('CONECTAR',
+                                            style: TextStyle(
+                                              color: Color.fromARGB(255, 0, 0, 0)
+                                            ),
+                                          ),
                                         onPressed: () {
                                           Navigator.of(context).push(MaterialPageRoute(
                                               builder: (context) {
@@ -483,7 +497,7 @@ class DeviceScreen extends StatelessWidget {
                       isConnectingOrDisconnecting[device.remoteId] ??= ValueNotifier(false);
                       isConnectingOrDisconnecting[device.remoteId]!.value = false;
                     };
-                    text = 'DISCONNECT';
+                    text = 'DESCONECTAR';
                     break;
                   case BluetoothConnectionState.disconnected:
                     onPressed = () async {
@@ -502,7 +516,7 @@ class DeviceScreen extends StatelessWidget {
                       isConnectingOrDisconnecting[device.remoteId] ??= ValueNotifier(false);
                       isConnectingOrDisconnecting[device.remoteId]!.value = false;
                     };
-                    text = 'CONNECT';
+                    text = 'CONECTAR';
                     break;
                   default:
                     onPressed = null;
@@ -530,7 +544,10 @@ class DeviceScreen extends StatelessWidget {
                             onPressed: onPressed,
                             child: Text(
                               text,
-                              style: Theme.of(context).primaryTextTheme.labelLarge?.copyWith(color: Colors.white),
+                              style: const TextStyle(
+                                color: Color.fromARGB(255, 203, 54, 54)
+                              ),
+                              //style: Theme.of(context).primaryTextTheme.labelLarge?.copyWith(color: const Color.fromARGB(255, 9, 0, 65)),
                             ));
                       }
                     });
