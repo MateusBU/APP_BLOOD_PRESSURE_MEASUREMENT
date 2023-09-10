@@ -39,7 +39,8 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
   String valueDefaultBPS = '0';
   String valueDefaultBPD = '0';
 
-
+    late Stream<List<int>> _valueStream;
+    List<int> _currentValue = [];
 
 
   @override
@@ -52,6 +53,21 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
   //   Timer.periodic(const Duration(seconds: 60), (Timer timer) {
   //   isDisconected(); // Call your function here
   // });
+  }
+  
+  Future<void>  startNotification()async{
+    print("Start notifi");
+    for(BluetoothCharacteristic c in widget.serviceTest!){
+      if(c.characteristicUuid.toString() == "86d3ac32-8756-11e7-bb31-be2e44b06b34"){
+        _valueStream = c.lastValueStream;
+        _valueStream.listen((value) {
+          setState(() {
+            _currentValue = value;
+          });
+        });
+      }
+    }
+    print("Stop notifi");
   }
 
   _asyncMethod() async {
@@ -67,8 +83,9 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
       print("Fail");
     }
   }
+
   
-    Future<void> _getValueBP() async{
+  Future<void> _getValueBP() async{
       final prefs = await SharedPreferences.getInstance();
       valueDefaultBPS = prefs.getString('PBS') ?? '0';
       valueDefaultBPD = prefs.getString('PBD') ?? '0';
@@ -173,7 +190,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
             return true;
           }
           else if(element.characteristicUuid.toString() == "86d3ac32-8756-11e7-bb31-be2e44b06b34"){
-            //element.setNotifyValue(element.isNotifying == false);
+            element.setNotifyValue(element.isNotifying == false);
             return true;
           }
           return false;
@@ -223,6 +240,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
       widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
       widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
       print("Success");
+      startNotification();
     } catch (e) {
       final snackBar = snackBarFailDeviceScreen(prettyExceptionDeviceScreen("Discover Services Error:", e));
       widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
@@ -347,6 +365,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
   });
   }
 
+
   @override
   Widget build(BuildContext context) {
     return ScaffoldMessenger(
@@ -442,6 +461,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Text('Value received: $_currentValue'),
               const SizedBox(height: 100),
               ElevatedButton(
                 onPressed: () => pressedStart(context),
