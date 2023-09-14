@@ -6,6 +6,16 @@ import 'dart:async';
 
 import 'blood_pressure_screen.dart';
 
+enum BluetoothData{
+  stx,
+  addressEsp,
+  addressApp,
+  command,
+  dataBluetooth,
+  checksum,
+  etx
+} 
+
 class MainDeviceScreen extends StatefulWidget {
   final BluetoothDevice device;
   final Map<DeviceIdentifier, ValueNotifier<bool>> isConnectingOrDisconnecting;
@@ -131,7 +141,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
     return digitList;
   }
 
-  setBloodPressureArray(List<int> listOfDBP, List<int> listOfSBP){
+  List<int> setBloodPressureArray(List<int> listOfDBP, List<int> listOfSBP){
     List<int> bloodPressureArray = [];
     //List<int> checkSumArray = [];
     int checkSum = 0;//, decimalNumber = 255;
@@ -345,36 +355,130 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
   }
 
   void isDisconected(){
-
     final Stream<BluetoothConnectionState> connectionStream = widget.device.connectionState;
-
-  connectionStream.listen((BluetoothConnectionState state) {
-    // Handle the emitted state using a switch statement.
-    switch (state) {
-      case BluetoothConnectionState.connected:
-        widget._disconnected = false;
-        break;
-      case BluetoothConnectionState.disconnected:
-        widget._disconnected = true;
-        break;
-      default:
-        widget._disconnected = false;
-        break;
-    }
-    setState(() {});
-  });
+    connectionStream.listen((BluetoothConnectionState state) {
+      // Handle the emitted state using a switch statement.
+      switch (state) {
+        case BluetoothConnectionState.connected:
+          widget._disconnected = false;
+          break;
+        case BluetoothConnectionState.disconnected:
+          widget._disconnected = true;
+          break;
+        default:
+          widget._disconnected = false;
+          break;
+      }
+      setState(() {});
+    });
   }
+
+  bool isMeasurementStarted(){
+    if(_currentValue.isNotEmpty){
+      print(_currentValue);
+      return verifyRecievedData(_currentValue);
+    }
+    return false;
+  }
+
+
+  bool verifyRecievedData(List<int> currentValue){
+    BluetoothData blueData = BluetoothData.stx;
+    int index = 0, checksum = 0, checksumReceived = 0;
+    while(blueData != BluetoothData.etx){
+      switch(blueData){
+        case BluetoothData.stx:
+          if(currentValue[index] == 2){
+            blueData = BluetoothData.addressEsp;
+            index++;
+          }
+          else{
+            return false;
+          }
+        break;
+
+        case BluetoothData.addressEsp:
+          checksum ^= currentValue[index];
+          if(currentValue[index] == 98){
+            blueData = BluetoothData.addressApp;
+            index++;
+          }
+          else{
+            return false;
+          }
+        break;
+
+        case BluetoothData.addressApp:
+          checksum ^= currentValue[index];
+          if(currentValue[index] == 112){
+            blueData = BluetoothData.command;
+            index++;
+          }
+          else{
+            return false;
+          }
+        break;
+
+        case BluetoothData.command:
+          checksum ^= currentValue[index];
+            if(currentValue[index] == 70){
+              blueData = BluetoothData.checksum;
+            }
+            else{
+              blueData = BluetoothData.dataBluetooth;
+            }
+            index++;
+        break;
+
+        case BluetoothData.dataBluetooth:
+          checksum ^= currentValue[index];
+          blueData = BluetoothData.checksum;
+          index++;
+        break;
+
+        case BluetoothData.checksum:
+          checksumReceived = currentValue[index];
+          blueData = BluetoothData.etx;
+        break;
+
+        case BluetoothData.etx:
+          return true;
+      }
+    }   
+    return true;
+  }
+
+  /*----CONEXION--- */
+
+
+  /*----BUTTONS--- */
 
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // This code will run after the widget tree is built
+      if(isMeasurementStarted()){
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => const BloodPressureScreen(),
+          // builder:  (context) => DeviceScreen(device: d),
+          settings: const RouteSettings(name: '/BloodPressureScreen')
+        ));    
+      }
+      // You can execute other tasks here
+    });
     return ScaffoldMessenger(
       key: widget.snackBarKeyA,
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular(30),
+            ),
+          ),
+          backgroundColor: Colors.cyanAccent[700],
           title: Text(widget.device.localName.toUpperCase()),
-          backgroundColor: const Color.fromARGB(255, 229, 156, 255),
           actions: <Widget>[
             StreamBuilder<BluetoothConnectionState>(
               stream: widget.device.connectionState,

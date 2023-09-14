@@ -183,14 +183,10 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                     return ElevatedButton(
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-                                        foregroundColor: const Color.fromARGB(255, 0, 0, 0), 
+                                        foregroundColor: const Color.fromARGB(255, 73, 2, 111), 
                                       ),
                                         child: const 
-                                          Text('CONECTAR',
-                                            style: TextStyle(
-                                              color: Color.fromARGB(255, 0, 0, 0)
-                                            ),
-                                          ),
+                                          Text('CONECTAR'),
                                         onPressed: () {
                                           Navigator.of(context).push(MaterialPageRoute(
                                               builder: (context) {
@@ -234,8 +230,21 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text('MEDIÇÃO DE PRESSÃO ARTERIAL',textAlign: TextAlign.center),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular(30),
+            ),
+          ),
+          backgroundColor: Colors.cyanAccent[700],
+          title: const Text('MEDIÇÃO DE PRESSÃO ARTERIAL',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18
+            ),
+          ),
         ),
+        drawer: const Drawer(),
         body: RefreshIndicator(
           onRefresh: () {
             setState(() {}); // force refresh of connectedSystemDevices
