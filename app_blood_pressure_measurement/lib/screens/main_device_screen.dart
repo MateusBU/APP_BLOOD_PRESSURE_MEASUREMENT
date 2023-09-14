@@ -64,21 +64,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
   //   isDisconected(); // Call your function here
   // });
   }
-  
-  Future<void>  startNotification()async{
-    print("Start notifi");
-    for(BluetoothCharacteristic c in widget.serviceTest!){
-      if(c.characteristicUuid.toString() == "86d3ac32-8756-11e7-bb31-be2e44b06b34"){
-        _valueStream = c.lastValueStream;
-        _valueStream.listen((value) {
-          setState(() {
-            _currentValue = value;
-          });
-        });
-      }
-    }
-    print("Stop notifi");
-  }
+
 
   _asyncMethod() async {
     try {
@@ -94,23 +80,24 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
     }
   }
 
-  
+  /*---BP VALUES */
   Future<void> _getValueBP() async{
       final prefs = await SharedPreferences.getInstance();
       valueDefaultBPS = prefs.getString('PBS') ?? '0';
       valueDefaultBPD = prefs.getString('PBD') ?? '0';
-    }
+  }
   
-    Future<void> _changeValueBPS(String value) async{
-      final prefs = await SharedPreferences.getInstance();
-      prefs.setString('PBS', value);
-    }
+  Future<void> _changeValueBPS(String value) async{
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('PBS', value);
+  }
   
-    Future<void> _changeValueBPD(String value) async{
-      final prefs = await SharedPreferences.getInstance();
-      prefs.setString('PBD', value);
-    }
+  Future<void> _changeValueBPD(String value) async{
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('PBD', value);
+  }
 
+  /*---SNACK BAR--*/
   SnackBar snackBarGoodDeviceScreen(String message) {
     return SnackBar(content: Text(message), backgroundColor: Colors.blue);
   }
@@ -119,16 +106,8 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
     return SnackBar(content: Text(message), backgroundColor: Colors.red);
   }
 
-  String prettyExceptionDeviceScreen(String prefix, dynamic e) {
-    if (e is FlutterBluePlusException) {
-      return "$prefix ${e.description}";
-    } else if (e is PlatformException) {
-      return "$prefix ${e.message}";
-    }
-    return prefix + e.toString();
-  }
-
-    List<int> separateNumberToList(int number) {
+  /*LIST OF VALUES */
+  List<int> separateNumberToList(int number) {
     // Convert the number to a string
     String numberAsString = number.toString();
     
@@ -188,6 +167,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
     return bloodPressureArray;
   }
 
+  /*---DEVICE--- */
   void getListOfCharacteristic(){
     for(var s in widget.device.servicesList!){
       for(var c in s.characteristics){
@@ -206,171 +186,22 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
           return false;
         }
         ).toList();
-    }
-      
+    } 
   }
 
-  Future<void> desconnectToDevice(BuildContext context)async{
-      widget.isConnectingOrDisconnecting[widget.device.remoteId] ??= ValueNotifier(true);
-      widget.isConnectingOrDisconnecting[widget.device.remoteId]!.value = true;
-      try {
-        await widget.device.disconnect();
-        final snackBar = snackBarGoodDeviceScreen("Disconnect: Success");
-        widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
-        widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
-      } catch (e) {
-        final snackBar = snackBarFailDeviceScreen(prettyExceptionDeviceScreen("Disconnect Error:", e));
-        widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
-        widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
-      }
-      widget.isConnectingOrDisconnecting[widget.device.remoteId] ??= ValueNotifier(false);
-      widget.isConnectingOrDisconnecting[widget.device.remoteId]!.value = false;
-  }
-
-  Future<void> connectToDevice(BuildContext context)async{
-    widget.isConnectingOrDisconnecting[widget.device.remoteId] ??= ValueNotifier(true);
-    widget.isConnectingOrDisconnecting[widget.device.remoteId]!.value = true;
-    try {
-      await widget.device.connect(timeout: const Duration(seconds: 35));
-      final snackBar = snackBarGoodDeviceScreen("Connect: Success");
-      widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
-      widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
-    } catch (e) {
-      final snackBar = snackBarFailDeviceScreen(prettyExceptionDeviceScreen("Connect Error:", e));
-      widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
-      widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
-      }
-    widget.isConnectingOrDisconnecting[widget.device.remoteId] ??= ValueNotifier(false);
-    widget.isConnectingOrDisconnecting[widget.device.remoteId]!.value = false;
-
-    try {
-      await widget.device.discoverServices();
-      getListOfCharacteristic();
-      final snackBar = snackBarGoodDeviceScreen("Discover Services: Success");
-      widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
-      widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
-      print("Success");
-      startNotification();
-    } catch (e) {
-      final snackBar = snackBarFailDeviceScreen(prettyExceptionDeviceScreen("Discover Services Error:", e));
-      widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
-      widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
-      print("Fail");
-    }
-  }
-
-  void pressedStart(BuildContext context){
-    List<int> sendStartArray = [0x02, 0x70, 0x62, 0x41, 0x35, 0x33, 0x03];
+  Future<void>  startNotification()async{
+    print("Start notifi");
     for(BluetoothCharacteristic c in widget.serviceTest!){
-      if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
-        c.write(sendStartArray, withoutResponse: c.properties.writeWithoutResponse);
+      if(c.characteristicUuid.toString() == "86d3ac32-8756-11e7-bb31-be2e44b06b34"){
+        _valueStream = c.lastValueStream;
+        _valueStream.listen((value) {
+          setState(() {
+            _currentValue = value;
+          });
+        });
       }
     }
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (context) => const BloodPressureScreen(),
-      // builder:  (context) => DeviceScreen(device: d),
-      settings: const RouteSettings(name: '/BloodPressureScreen')
-    ));                                      // builder:  (context) => DeviceScreen(device: d),
-    }
-
-  void calibrateSensor(BuildContext context){
-    //start calibrate
-    if(!widget._calibrateStarted){
-      List<int> sendCalibrateArray = [0x02, 0x70, 0x62, 0x43, 0x35, 0x31, 0x03];
-      for(BluetoothCharacteristic c in widget.serviceTest!){
-        if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
-          c.write(sendCalibrateArray, withoutResponse: c.properties.writeWithoutResponse);
-        }
-      }
-    }
-    
-    //send calibrate
-    showMenu(
-      context: context,
-      position: const RelativeRect.fromLTRB(25, 25, 0, 0),
-      items: <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: '60',
-                child: Text('60'),
-              ),
-              const PopupMenuItem<String>(
-                value: '200',
-                child: Text('200'),
-              ),
-      ]
-    ).then((value){
-        if(value != null){
-          //_handleMenuItemSelection = value;
-          List<int> sendCalibrateArray;
-          if(value == '60'){
-            sendCalibrateArray = [0x02, 0x70, 0x62, 0x44, 0x35, 0x36, 0x03];
-            setState(() {
-              widget._calibrateStarted = true;              
-            });
-          }
-          else{
-            sendCalibrateArray = [0x02, 0x70, 0x62, 0x45, 0x35, 0x37, 0x03];
-            setState(() {
-              widget._calibrateStarted = false;              
-            });
-          }
-          for(BluetoothCharacteristic c in widget.serviceTest!){
-            if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
-              c.write(sendCalibrateArray, withoutResponse: c.properties.writeWithoutResponse);
-            }
-          }
-        }
-      }     
-    );
-  }
-
-  Future<void> SendBPData(BuildContext context)async{
-    List<int> listOfDBP = [];
-    List<int> listOfSBP = [];
-    List<int> sendBloodpressureArray = [];
-    if(widget._controllerDBP.text != '') {
-      listOfDBP =separateNumberToList(int.parse(widget._controllerDBP.text));
-      await _changeValueBPD(widget._controllerDBP.text);
-    }
-    else{
-      listOfDBP =separateNumberToList(int.parse(valueDefaultBPD));
-      print(listOfDBP);
-    }
-    if(widget._controllerSBP.text != '') {
-      listOfSBP =separateNumberToList(int.parse(widget._controllerSBP.text));
-      await _changeValueBPS(widget._controllerSBP.text);
-    }
-    else{
-      listOfSBP =separateNumberToList(int.parse(valueDefaultBPS));
-      print(listOfSBP);
-    }
-
-    sendBloodpressureArray = setBloodPressureArray(listOfDBP, listOfSBP);
-
-    for(BluetoothCharacteristic c in widget.serviceTest!){
-      if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
-        c.write(sendBloodpressureArray, withoutResponse: c.properties.writeWithoutResponse);
-      }
-    }
-  }
-
-  void isDisconected(){
-    final Stream<BluetoothConnectionState> connectionStream = widget.device.connectionState;
-    connectionStream.listen((BluetoothConnectionState state) {
-      // Handle the emitted state using a switch statement.
-      switch (state) {
-        case BluetoothConnectionState.connected:
-          widget._disconnected = false;
-          break;
-        case BluetoothConnectionState.disconnected:
-          widget._disconnected = true;
-          break;
-        default:
-          widget._disconnected = false;
-          break;
-      }
-      setState(() {});
-    });
+    print("Stop notifi");
   }
 
   bool isMeasurementStarted(){
@@ -380,7 +211,6 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
     }
     return false;
   }
-
 
   bool verifyRecievedData(List<int> currentValue){
     BluetoothData blueData = BluetoothData.stx;
@@ -449,9 +279,178 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
   }
 
   /*----CONEXION--- */
+  void isDisconected(){
+    final Stream<BluetoothConnectionState> connectionStream = widget.device.connectionState;
+    connectionStream.listen((BluetoothConnectionState state) {
+      // Handle the emitted state using a switch statement.
+      switch (state) {
+        case BluetoothConnectionState.connected:
+          widget._disconnected = false;
+          break;
+        case BluetoothConnectionState.disconnected:
+          widget._disconnected = true;
+          break;
+        default:
+          widget._disconnected = false;
+          break;
+      }
+      setState(() {});
+    });
+  }
 
+  String prettyExceptionDeviceScreen(String prefix, dynamic e) {
+    if (e is FlutterBluePlusException) {
+      return "$prefix ${e.description}";
+    } else if (e is PlatformException) {
+      return "$prefix ${e.message}";
+    }
+    return prefix + e.toString();
+  }
+
+  Future<void> desconnectToDevice(BuildContext context)async{
+      widget.isConnectingOrDisconnecting[widget.device.remoteId] ??= ValueNotifier(true);
+      widget.isConnectingOrDisconnecting[widget.device.remoteId]!.value = true;
+      try {
+        await widget.device.disconnect();
+        final snackBar = snackBarGoodDeviceScreen("Disconnect: Success");
+        widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
+        widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
+      } catch (e) {
+        final snackBar = snackBarFailDeviceScreen(prettyExceptionDeviceScreen("Disconnect Error:", e));
+        widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
+        widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
+      }
+      widget.isConnectingOrDisconnecting[widget.device.remoteId] ??= ValueNotifier(false);
+      widget.isConnectingOrDisconnecting[widget.device.remoteId]!.value = false;
+  }
+
+  Future<void> connectToDevice(BuildContext context)async{
+    widget.isConnectingOrDisconnecting[widget.device.remoteId] ??= ValueNotifier(true);
+    widget.isConnectingOrDisconnecting[widget.device.remoteId]!.value = true;
+    try {
+      await widget.device.connect(timeout: const Duration(seconds: 35));
+      final snackBar = snackBarGoodDeviceScreen("Connect: Success");
+      widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
+      widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
+    } catch (e) {
+      final snackBar = snackBarFailDeviceScreen(prettyExceptionDeviceScreen("Connect Error:", e));
+      widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
+      widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
+      }
+    widget.isConnectingOrDisconnecting[widget.device.remoteId] ??= ValueNotifier(false);
+    widget.isConnectingOrDisconnecting[widget.device.remoteId]!.value = false;
+
+    try {
+      await widget.device.discoverServices();
+      getListOfCharacteristic();
+      final snackBar = snackBarGoodDeviceScreen("Discover Services: Success");
+      widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
+      widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
+      print("Success");
+      startNotification();
+    } catch (e) {
+      final snackBar = snackBarFailDeviceScreen(prettyExceptionDeviceScreen("Discover Services Error:", e));
+      widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
+      widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
+      print("Fail");
+    }
+  }
 
   /*----BUTTONS--- */
+  void pressedStart(BuildContext context){
+    List<int> sendStartArray = [0x02, 0x70, 0x62, 0x41, 0x35, 0x33, 0x03];
+    for(BluetoothCharacteristic c in widget.serviceTest!){
+      if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
+        c.write(sendStartArray, withoutResponse: c.properties.writeWithoutResponse);
+      }
+    }
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) => const BloodPressureScreen(),
+      // builder:  (context) => DeviceScreen(device: d),
+      settings: const RouteSettings(name: '/BloodPressureScreen')
+    ));                                      // builder:  (context) => DeviceScreen(device: d),
+  }
+
+  void calibrateSensor(BuildContext context){
+    //start calibrate
+    if(!widget._calibrateStarted){
+      List<int> sendCalibrateArray = [0x02, 0x70, 0x62, 0x43, 0x35, 0x31, 0x03];
+      for(BluetoothCharacteristic c in widget.serviceTest!){
+        if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
+          c.write(sendCalibrateArray, withoutResponse: c.properties.writeWithoutResponse);
+        }
+      }
+    }
+    //send calibrate
+    showMenu(
+      context: context,
+      position: const RelativeRect.fromLTRB(25, 25, 0, 0),
+      items: <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: '60',
+                child: Text('60'),
+              ),
+              const PopupMenuItem<String>(
+                value: '200',
+                child: Text('200'),
+              ),
+      ]
+    ).then((value){
+        if(value != null){
+          //_handleMenuItemSelection = value;
+          List<int> sendCalibrateArray;
+          if(value == '60'){
+            sendCalibrateArray = [0x02, 0x70, 0x62, 0x44, 0x35, 0x36, 0x03];
+            setState(() {
+              widget._calibrateStarted = true;              
+            });
+          }
+          else{
+            sendCalibrateArray = [0x02, 0x70, 0x62, 0x45, 0x35, 0x37, 0x03];
+            setState(() {
+              widget._calibrateStarted = false;              
+            });
+          }
+          for(BluetoothCharacteristic c in widget.serviceTest!){
+            if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
+              c.write(sendCalibrateArray, withoutResponse: c.properties.writeWithoutResponse);
+            }
+          }
+        }
+      }     
+    );
+  }
+
+
+  Future<void> SendBPData(BuildContext context)async{
+    List<int> listOfDBP = [];
+    List<int> listOfSBP = [];
+    List<int> sendBloodpressureArray = [];
+    if(widget._controllerDBP.text != '') {
+      listOfDBP =separateNumberToList(int.parse(widget._controllerDBP.text));
+      await _changeValueBPD(widget._controllerDBP.text);
+    }
+    else{
+      listOfDBP =separateNumberToList(int.parse(valueDefaultBPD));
+      print(listOfDBP);
+    }
+    if(widget._controllerSBP.text != '') {
+      listOfSBP =separateNumberToList(int.parse(widget._controllerSBP.text));
+      await _changeValueBPS(widget._controllerSBP.text);
+    }
+    else{
+      listOfSBP =separateNumberToList(int.parse(valueDefaultBPS));
+      print(listOfSBP);
+    }
+
+    sendBloodpressureArray = setBloodPressureArray(listOfDBP, listOfSBP);
+
+    for(BluetoothCharacteristic c in widget.serviceTest!){
+      if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
+        c.write(sendBloodpressureArray, withoutResponse: c.properties.writeWithoutResponse);
+      }
+    }
+  }
 
 
   @override
