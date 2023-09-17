@@ -1,17 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 
-class BloodPressureScreen extends StatelessWidget {
+class BloodPressureScreen extends StatefulWidget {
+
+  final bool _isValuesReady = false;
   const BloodPressureScreen({super.key});
 
+  @override
+  State<BloodPressureScreen> createState() => _BloodPressureScreenState();
+}
+
+class _BloodPressureScreenState extends State<BloodPressureScreen> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
+          centerTitle: true,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(
+              bottom: Radius.circular(30),
+            ),
+          ),
+          backgroundColor: Colors.cyanAccent[700],
           title: const Text('Line Chart Example'),
         ),
-        body: Column(
+        body:widget._isValuesReady ? Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text("GRÁFICO"),
@@ -66,7 +80,39 @@ class BloodPressureScreen extends StatelessWidget {
                 ),
               ),
             ),
+            const Row(
+              children: [
+                ElevatedButton(
+                  onPressed: null,
+                  child: Text("Salvar"),
+                ),
+              ],
+            ),
           ],
+        )
+        :
+        const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              SizedBox(height: 40,),
+              Card(
+                elevation: 4.0,
+                child: Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text("ESPERANDO PELOS VALORES",
+                    style: TextStyle(
+                      fontSize: 24.0,
+                      fontWeight: FontWeight.bold,
+                      color:  Color.fromARGB(255, 73, 2, 111),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 100,),
+              CircularProgressIndicator(),
+            ]
+          ),
         ),
       ),
     );
