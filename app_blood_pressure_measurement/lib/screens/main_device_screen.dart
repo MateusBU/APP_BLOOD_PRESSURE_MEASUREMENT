@@ -13,7 +13,8 @@ enum BluetoothData{
   command,
   dataBluetooth,
   checksum,
-  etx
+  etx,
+  done,
 } 
 
 class MainDeviceScreen extends StatefulWidget {
@@ -60,9 +61,16 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
       _asyncMethod();
       _getValueBP();
     });
-  //   Timer.periodic(const Duration(seconds: 60), (Timer timer) {
-  //   isDisconected(); // Call your function here
-  // });
+    Timer.periodic(const Duration(seconds: 60), (Timer timer) {
+    isDisconected(); // Call your function here
+    if(isMeasurementStarted()){
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => const BloodPressureScreen(),
+          // builder:  (context) => DeviceScreen(device: d),
+          settings: const RouteSettings(name: '/BloodPressureScreen')
+        ));    
+      }
+  });
   }
 
 
@@ -214,8 +222,10 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
 
   bool verifyRecievedData(List<int> currentValue){
     BluetoothData blueData = BluetoothData.stx;
-    int index = 0, checksum = 0, checksumReceived = 0;
-    while(blueData != BluetoothData.etx){
+    int index = 0, checksum = 0;
+    String checksumString = '';
+
+    while(blueData != BluetoothData.done){
       switch(blueData){
         case BluetoothData.stx:
           if(currentValue[index] == 2){
@@ -267,15 +277,29 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
         break;
 
         case BluetoothData.checksum:
-          checksumReceived = currentValue[index];
+          checksumString = checksum.toRadixString(16);
+          if(checksumString[0].toUpperCase().codeUnitAt(0) != currentValue[index]){
+            return false;
+          }
+          index++;
+          if(checksumString[1].toUpperCase().codeUnitAt(0) != currentValue[index]){
+            return false;
+          }
+          index++;
           blueData = BluetoothData.etx;
         break;
 
         case BluetoothData.etx:
-          return true;
+          print('etx');
+          if(currentValue[index] == 3){
+            return true;
+          }
+          blueData = BluetoothData.done;
+          return false;
+        
       }
     }   
-    return true;
+    return false;
   }
 
   /*----CONEXION--- */
@@ -452,23 +476,14 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // This code will run after the widget tree is built
-      if(isMeasurementStarted()){
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (context) => const BloodPressureScreen(),
-          // builder:  (context) => DeviceScreen(device: d),
-          settings: const RouteSettings(name: '/BloodPressureScreen')
-        ));    
-      }
-      // You can execute other tasks here
-    });
-    return ScaffoldMessenger(
-      key: widget.snackBarKeyA,
-      child: Scaffold(
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   // This code will run after the widget tree is built
+      
+    //   // You can execute other tasks here
+    // });
+    return Scaffold(
         appBar: AppBar(
           centerTitle: true,
           shape: const RoundedRectangleBorder(
@@ -564,7 +579,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Value received: $_currentValue'),
+              //Text('Value received: $_currentValue'),
               const SizedBox(height: 100),
               ElevatedButton(
                 onPressed: () => pressedStart(context),
@@ -634,8 +649,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }
 
