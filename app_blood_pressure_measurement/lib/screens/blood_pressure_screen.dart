@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 import '../models/deviceBloodPressure.dart';
+import 'chart_wave_form_screen.dart';
 
 enum BluetoothData{
   stx,
@@ -32,6 +33,11 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
   List<int> _currentValueWaveForm = [];
   final List<int> _dataWaveForm = [];
   bool _isValuesReady = false;
+
+  int minBPValue = 0;
+  int maxBPValue = 0;
+  List<int> arrayBP = [];
+  int freq = 0;
 
   @override
   void initState(){
@@ -62,7 +68,8 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
     int indexDataArray = _dataWaveForm.length, 
         checksum = 0, 
         index = 0,
-        commandData = 0;
+        commandData = 0,
+        dataFreq = 0;
     String checksumString = '';
 
     while(blueData != BluetoothData.done){
@@ -113,6 +120,7 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
           if(_currentValueWaveForm[index] != 91 && _currentValueWaveForm[index] != 93) {
             // [ e ]
             _dataWaveForm[indexDataArray] = _currentValueWaveForm[index];
+            dataFreq = _currentValueWaveForm[index];
           }
           else if(_currentValueWaveForm[index] == 93){
             blueData = BluetoothData.checksum;
@@ -140,7 +148,12 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
               _dataWaveForm.clear();
             }
             else if (commandData == 71){
+              DeviceBloodPressure.getInstance().setFrequencyEachValue(dataFreq);
               setState(() {
+                minBPValue = DeviceBloodPressure.getInstance().getMinValueFromValueWaveForm()-10;
+                maxBPValue = DeviceBloodPressure.getInstance().getMaxValueFromValueWaveForm()+10;
+                arrayBP = DeviceBloodPressure.getInstance().getValueWaveForm();
+                freq = DeviceBloodPressure.getInstance().getFrequencyEachValue();
                 _isValuesReady = true;
               });
             }
@@ -180,46 +193,12 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
                 child: SizedBox(
                   width: 400.0, // Specify width
                   height: 400.0, // Specify height
-                  child: LineChart(
-                    LineChartData(
-                      gridData: const FlGridData(
-                        show: false,
-                      ),
-                      titlesData: const FlTitlesData(
-                        show: false,
-                      ),
-                      borderData: FlBorderData(
-                        show: true,
-                        border: Border.all(
-                          color: const Color(0xff37434d),
-                          width: 1,
-                        ),
-                      ),
-                      minX: 0,
-                      maxX: 6,
-                      minY: 0,
-                      maxY: 6,
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: [
-                            const FlSpot(0, 3),
-                            const FlSpot(1, 1),
-                            const FlSpot(2, 4),
-                            const FlSpot(3, 2),
-                            const FlSpot(4, 5),
-                            const FlSpot(5, 1),
-                          ],
-                          isCurved: true,
-                          color: const Color.fromARGB(255, 256, 24, 47),
-                          dotData: const FlDotData(
-                            show: false,
-                          ),
-                          belowBarData: BarAreaData(
-                            show: false,
-                          ),
-                        ),
-                      ],
-                    ),
+                  child: 
+                    ChartWaveFormScreen(
+                      minBPValue: minBPValue,
+                      maxBPValue: maxBPValue,
+                      arrayBP: arrayBP,
+                      freq: freq,
                   ),
                 ),
               ),

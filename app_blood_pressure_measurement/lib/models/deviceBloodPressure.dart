@@ -62,6 +62,22 @@ class DeviceBloodPressure{
     return valueWaveForm;
   }
 
+  int getMinValueFromValueWaveForm(){
+    return valueWaveForm.reduce((value, element) => min(value, element));
+  }
+
+  int getMaxValueFromValueWaveForm(){
+    return valueWaveForm.reduce((value, element) => max(value, element));
+  }
+
+  void setFrequencyEachValue(int value){
+    frequencyEachValue = value;
+  }
+
+  int getFrequencyEachValue(){
+    return frequencyEachValue;
+  }
+
   String getValueSBP(){
     return valueDefaultSBP;
   }
