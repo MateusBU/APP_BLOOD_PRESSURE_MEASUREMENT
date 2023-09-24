@@ -4,6 +4,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 
+import '../models/deviceBloodPressure.dart';
 import 'blood_pressure_screen.dart';
 
 enum BluetoothData{
@@ -18,23 +19,21 @@ enum BluetoothData{
 } 
 
 class MainDeviceScreen extends StatefulWidget {
-  final BluetoothDevice device;
+
   final Map<DeviceIdentifier, ValueNotifier<bool>> isConnectingOrDisconnecting;
   final GlobalKey<ScaffoldMessengerState> snackBarKeyA;
   final GlobalKey<ScaffoldMessengerState> snackBarKeyB;
   final GlobalKey<ScaffoldMessengerState> snackBarKeyC;
-  List<BluetoothCharacteristic>? serviceTest;
   bool _isTextFieldVisible = false;
   final TextEditingController _controllerDBP = TextEditingController();
   final TextEditingController _controllerSBP = TextEditingController();
-  //final FocusNode _focusNode = FocusNode();
   bool _calibrateStarted = false;
   bool _disconnected = true;
 
   MainDeviceScreen(
     {
       super.key, 
-    required this.device, 
+    //required this.device, 
     required this.isConnectingOrDisconnecting, 
     required this.snackBarKeyA,
     required this.snackBarKeyB,
@@ -47,30 +46,39 @@ class MainDeviceScreen extends StatefulWidget {
 }
 
 class _MainDeviceScreenState extends State<MainDeviceScreen> {
+  
+  //BluetoothDevice? device;
+  //List<BluetoothCharacteristic>? serviceTest;
   String valueDefaultBPS = '0';
   String valueDefaultBPD = '0';
 
-    late Stream<List<int>> _valueStream;
-    List<int> _currentValue = [];
+  late Stream<List<int>> _valueStream;
+  List<int> _currentValue = [];
 
 
   @override
   void initState () {
     super.initState();
+    //device = DeviceBloodPressure.getInstance().getDeviceBloodPressure();
     WidgetsBinding.instance.addPostFrameCallback((_){
       _asyncMethod();
       _getValueBP();
     });
-    Timer.periodic(const Duration(seconds: 60), (Timer timer) {
-    isDisconected(); // Call your function here
-    if(isMeasurementStarted()){
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (context) => const BloodPressureScreen(),
-          // builder:  (context) => DeviceScreen(device: d),
-          settings: const RouteSettings(name: '/BloodPressureScreen')
-        ));    
-      }
+    Timer.periodic(const Duration(seconds: 15), (Timer timer) {
+      isDisconected(); // Call your function here
+      if(isMeasurementStarted()){
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => const BloodPressureScreen(),
+            settings: const RouteSettings(name: '/BloodPressureScreen')
+          ));    
+        }
   });
+  }
+
+  @override
+  void dispose(){
+    print("change screen");
+    super.dispose();
   }
 
 
@@ -162,44 +170,15 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
     print(" CHECKSUM $checkSum");
 
     checkSumHex = checkSum.toRadixString(16);
-    //checkSumArray = separateNumberToList(checkSum);
     for(int index = 0; index < checkSumHex.length; index++){
-      //if(checkSumHex[index])
       bloodPressureArray.add(checkSumHex[index].toUpperCase().codeUnitAt(0));
     }
-
-    //print('int: 0x${checkSumHex[1].toUpperCase().codeUnitAt(0)}');
-    
     bloodPressureArray.add(0x03); //ETX
-
     return bloodPressureArray;
   }
-
-  /*---DEVICE--- */
-  void getListOfCharacteristic(){
-    for(var s in widget.device.servicesList!){
-      for(var c in s.characteristics){
-        print(c.characteristicUuid);
-      }
-      widget.serviceTest = s.characteristics.where(
-        (element) {
-          if(element.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
-            element.write([0x42,0x4c,0x4f,0x4f,0x44], withoutResponse: element.properties.writeWithoutResponse);
-            return true;
-          }
-          else if(element.characteristicUuid.toString() == "86d3ac32-8756-11e7-bb31-be2e44b06b34"){
-            element.setNotifyValue(element.isNotifying == false);
-            return true;
-          }
-          return false;
-        }
-        ).toList();
-    } 
-  }
-
   Future<void>  startNotification()async{
     print("Start notifi");
-    for(BluetoothCharacteristic c in widget.serviceTest!){
+    for(BluetoothCharacteristic c in DeviceBloodPressure.getInstance().getServiceDevices()){
       if(c.characteristicUuid.toString() == "86d3ac32-8756-11e7-bb31-be2e44b06b34"){
         _valueStream = c.lastValueStream;
         _valueStream.listen((value) {
@@ -290,7 +269,6 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
         break;
 
         case BluetoothData.etx:
-          print('etx');
           if(currentValue[index] == 3){
             return true;
           }
@@ -304,7 +282,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
 
   /*----CONEXION--- */
   void isDisconected(){
-    final Stream<BluetoothConnectionState> connectionStream = widget.device.connectionState;
+    final Stream<BluetoothConnectionState> connectionStream = DeviceBloodPressure.getInstance().getDeviceBloodPressure().connectionState;
     connectionStream.listen((BluetoothConnectionState state) {
       // Handle the emitted state using a switch statement.
       switch (state) {
@@ -332,10 +310,10 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
   }
 
   Future<void> desconnectToDevice(BuildContext context)async{
-      widget.isConnectingOrDisconnecting[widget.device.remoteId] ??= ValueNotifier(true);
-      widget.isConnectingOrDisconnecting[widget.device.remoteId]!.value = true;
+      widget.isConnectingOrDisconnecting[DeviceBloodPressure.getInstance().getDeviceBloodPressure().remoteId] ??= ValueNotifier(true);
+      widget.isConnectingOrDisconnecting[DeviceBloodPressure.getInstance().getDeviceBloodPressure().remoteId]!.value = true;
       try {
-        await widget.device.disconnect();
+        await DeviceBloodPressure.getInstance().getDeviceBloodPressure().disconnect();
         final snackBar = snackBarGoodDeviceScreen("Disconnect: Success");
         widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
         widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
@@ -344,15 +322,15 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
         widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
         widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
       }
-      widget.isConnectingOrDisconnecting[widget.device.remoteId] ??= ValueNotifier(false);
-      widget.isConnectingOrDisconnecting[widget.device.remoteId]!.value = false;
+      widget.isConnectingOrDisconnecting[DeviceBloodPressure.getInstance().getDeviceBloodPressure().remoteId] ??= ValueNotifier(false);
+      widget.isConnectingOrDisconnecting[DeviceBloodPressure.getInstance().getDeviceBloodPressure().remoteId]!.value = false;
   }
 
   Future<void> connectToDevice(BuildContext context)async{
-    widget.isConnectingOrDisconnecting[widget.device.remoteId] ??= ValueNotifier(true);
-    widget.isConnectingOrDisconnecting[widget.device.remoteId]!.value = true;
+    widget.isConnectingOrDisconnecting[DeviceBloodPressure.getInstance().getDeviceBloodPressure().remoteId] ??= ValueNotifier(true);
+    widget.isConnectingOrDisconnecting[DeviceBloodPressure.getInstance().getDeviceBloodPressure().remoteId]!.value = true;
     try {
-      await widget.device.connect(timeout: const Duration(seconds: 35));
+      await DeviceBloodPressure.getInstance().getDeviceBloodPressure().connect(timeout: const Duration(seconds: 35));
       final snackBar = snackBarGoodDeviceScreen("Connect: Success");
       widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
       widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
@@ -361,12 +339,12 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
       widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
       widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
       }
-    widget.isConnectingOrDisconnecting[widget.device.remoteId] ??= ValueNotifier(false);
-    widget.isConnectingOrDisconnecting[widget.device.remoteId]!.value = false;
+    widget.isConnectingOrDisconnecting[DeviceBloodPressure.getInstance().getDeviceBloodPressure().remoteId] ??= ValueNotifier(false);
+    widget.isConnectingOrDisconnecting[DeviceBloodPressure.getInstance().getDeviceBloodPressure().remoteId]!.value = false;
 
     try {
-      await widget.device.discoverServices();
-      getListOfCharacteristic();
+      await DeviceBloodPressure.getInstance().getDeviceBloodPressure().discoverServices();
+      DeviceBloodPressure.getInstance().setServicesDevices();
       final snackBar = snackBarGoodDeviceScreen("Discover Services: Success");
       widget.snackBarKeyC.currentState?.removeCurrentSnackBar();
       widget.snackBarKeyC.currentState?.showSnackBar(snackBar);
@@ -383,7 +361,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
   /*----BUTTONS--- */
   void pressedStart(BuildContext context){
     List<int> sendStartArray = [0x02, 0x70, 0x62, 0x41, 0x35, 0x33, 0x03];
-    for(BluetoothCharacteristic c in widget.serviceTest!){
+    for(BluetoothCharacteristic c in DeviceBloodPressure.getInstance().getServiceDevices()){
       if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
         c.write(sendStartArray, withoutResponse: c.properties.writeWithoutResponse);
       }
@@ -399,7 +377,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
     //start calibrate
     if(!widget._calibrateStarted){
       List<int> sendCalibrateArray = [0x02, 0x70, 0x62, 0x43, 0x35, 0x31, 0x03];
-      for(BluetoothCharacteristic c in widget.serviceTest!){
+      for(BluetoothCharacteristic c in DeviceBloodPressure.getInstance().getServiceDevices()){
         if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
           c.write(sendCalibrateArray, withoutResponse: c.properties.writeWithoutResponse);
         }
@@ -435,7 +413,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
               widget._calibrateStarted = false;              
             });
           }
-          for(BluetoothCharacteristic c in widget.serviceTest!){
+          for(BluetoothCharacteristic c in DeviceBloodPressure.getInstance().getServiceDevices()){
             if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
               c.write(sendCalibrateArray, withoutResponse: c.properties.writeWithoutResponse);
             }
@@ -469,7 +447,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
 
     sendBloodpressureArray = setBloodPressureArray(listOfDBP, listOfSBP);
 
-    for(BluetoothCharacteristic c in widget.serviceTest!){
+    for(BluetoothCharacteristic c in DeviceBloodPressure.getInstance().getServiceDevices()){
       if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
         c.write(sendBloodpressureArray, withoutResponse: c.properties.writeWithoutResponse);
       }
@@ -492,10 +470,10 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
             ),
           ),
           backgroundColor: Colors.cyanAccent[700],
-          title: Text(widget.device.localName.toUpperCase()),
+          title: Text(DeviceBloodPressure.getInstance().getDeviceBloodPressure().localName.toUpperCase()),
           actions: <Widget>[
             StreamBuilder<BluetoothConnectionState>(
-              stream: widget.device.connectionState,
+              stream: DeviceBloodPressure.getInstance().getDeviceBloodPressure().connectionState,
               initialData: BluetoothConnectionState.disconnected,
               builder: ((c, snapshot) {
                 VoidCallback? onPressed;
@@ -519,10 +497,10 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
                     break;
                 }
                 return ValueListenableBuilder<bool>(
-                  valueListenable: widget.isConnectingOrDisconnecting[widget.device.remoteId]!,
+                  valueListenable: widget.isConnectingOrDisconnecting[DeviceBloodPressure.getInstance().getDeviceBloodPressure().remoteId]!,
                   builder: (context,value,child){
-                    widget.isConnectingOrDisconnecting[widget.device.remoteId] ??= ValueNotifier(false);
-                    if (widget.isConnectingOrDisconnecting[widget.device.remoteId]!.value == true){
+                    widget.isConnectingOrDisconnecting[DeviceBloodPressure.getInstance().getDeviceBloodPressure().remoteId] ??= ValueNotifier(false);
+                    if (widget.isConnectingOrDisconnecting[DeviceBloodPressure.getInstance().getDeviceBloodPressure().remoteId]!.value == true){
                         // Show spinner when connecting or disconnecting
                       return const Padding(
                         padding: EdgeInsets.all(14.0),

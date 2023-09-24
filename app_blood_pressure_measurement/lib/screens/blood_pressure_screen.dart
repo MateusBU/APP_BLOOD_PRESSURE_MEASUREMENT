@@ -1,9 +1,24 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+
+import '../models/deviceBloodPressure.dart';
+
+enum BluetoothData{
+  stx,
+  addressEsp,
+  addressApp,
+  command,
+  dataBluetooth,
+  checksum,
+  etx,
+  done,
+} 
 
 class BloodPressureScreen extends StatefulWidget {
 
-  final bool _isValuesReady = false;
   const BloodPressureScreen({super.key});
 
   @override
@@ -11,6 +26,135 @@ class BloodPressureScreen extends StatefulWidget {
 }
 
 class _BloodPressureScreenState extends State<BloodPressureScreen> {
+
+
+  late Stream<List<int>> _valueWaveFormStream;
+  List<int> _currentValueWaveForm = [];
+  final List<int> _dataWaveForm = [];
+  bool _isValuesReady = false;
+
+  @override
+  void initState(){
+    super.initState();
+    startNotifierDataWaveForm();
+    Timer.periodic(const Duration(seconds: 1), (Timer timer) {
+        if(_currentValueWaveForm.isNotEmpty){
+          verifyReceiveDatWaveForm(_currentValueWaveForm);
+        }
+      });
+  }
+
+  startNotifierDataWaveForm(){
+    for(BluetoothCharacteristic c in DeviceBloodPressure.getInstance().getServiceDevices()){
+      if(c.characteristicUuid.toString() == "86d3ac32-8756-11e7-bb31-be2e44b06b34"){
+        _valueWaveFormStream = c.lastValueStream;
+        _valueWaveFormStream.listen((value) {
+          setState(() {
+            _currentValueWaveForm = value;
+          });
+        });
+      }
+    }
+  }
+
+  void verifyReceiveDatWaveForm(List<int> currentValueWaveForm){
+    BluetoothData blueData = BluetoothData.stx;
+    int indexDataArray = _dataWaveForm.length, 
+        checksum = 0, 
+        index = 0,
+        commandData = 0;
+    String checksumString = '';
+
+    while(blueData != BluetoothData.done){
+      switch(blueData){
+        case BluetoothData.stx:
+          if(_currentValueWaveForm[index] == 2){
+            blueData = BluetoothData.addressEsp;
+            index++;
+          }
+          else{
+          blueData = BluetoothData.done;
+          }
+        break;
+
+        case BluetoothData.addressEsp:
+          checksum ^= _currentValueWaveForm[index];
+          if(_currentValueWaveForm[index] == 98){
+            blueData = BluetoothData.addressApp;
+            index++;
+          }
+          else{
+          blueData = BluetoothData.done;
+          }
+        break;
+
+        case BluetoothData.addressApp:
+          checksum ^= _currentValueWaveForm[index];
+          if(_currentValueWaveForm[index] == 112){
+            blueData = BluetoothData.command;
+            index++;
+          }
+        break;
+
+        case BluetoothData.command:
+          checksum ^= _currentValueWaveForm[index];
+            if(_currentValueWaveForm[index] == 70 || _currentValueWaveForm[index] == 71){ //F
+              commandData = _currentValueWaveForm[index];
+              blueData = BluetoothData.dataBluetooth;
+            }
+            else{
+              blueData = BluetoothData.done;
+            }
+            index++;
+        break;
+
+        case BluetoothData.dataBluetooth:
+          checksum ^= _currentValueWaveForm[index];
+          if(_currentValueWaveForm[index] != 91 && _currentValueWaveForm[index] != 93) {
+            // [ e ]
+            _dataWaveForm[indexDataArray] = _currentValueWaveForm[index];
+          }
+          else if(_currentValueWaveForm[index] == 93){
+            blueData = BluetoothData.checksum;
+          }
+          index++;
+        break;
+
+        case BluetoothData.checksum:
+          checksumString = checksum.toRadixString(16);
+          if(checksumString[0].toUpperCase().codeUnitAt(0) != _currentValueWaveForm[index]){
+            blueData = BluetoothData.done;
+          }
+          index++;
+          if(checksumString[1].toUpperCase().codeUnitAt(0) != _currentValueWaveForm[index]){
+            blueData = BluetoothData.done;
+          }
+          index++;
+          blueData = BluetoothData.etx;
+        break;
+
+        case BluetoothData.etx:
+          if(_currentValueWaveForm[index] == 3){
+            if(commandData == 70){
+              DeviceBloodPressure.getInstance().setValueWaveForm(_dataWaveForm);
+              _dataWaveForm.clear();
+            }
+            else if (commandData == 71){
+              setState(() {
+                _isValuesReady = true;
+              });
+            }
+          }
+          blueData = BluetoothData.done;
+          break;
+        
+        default:
+          blueData = BluetoothData.done;
+          break;
+      }
+    }   
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -25,7 +169,7 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
           backgroundColor: Colors.cyanAccent[700],
           title: const Text('Line Chart Example'),
         ),
-        body:widget._isValuesReady ? Column(
+        body:_isValuesReady ? Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text("GRÁFICO"),

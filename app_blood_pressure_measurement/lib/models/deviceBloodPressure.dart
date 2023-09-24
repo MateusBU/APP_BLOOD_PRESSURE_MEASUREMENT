@@ -4,20 +4,29 @@ import 'dart:math';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 class DeviceBloodPressure{
-  BluetoothDevice deviceBloodPressure;
-  List<BluetoothCharacteristic> serviceDevices;
+  static DeviceBloodPressure? _deviceBPClass;
+  BluetoothDevice? deviceBloodPressure;
+  bool isDeviceBloodPressureSetted = false;
+  List<BluetoothCharacteristic> serviceDevices = [];
   String valueDefaultSBP = '0';
   String valueDefaultDBP = '0';
+  List<int> valueWaveForm = [];
+  int frequencyEachValue = 0;
 
-  DeviceBloodPressure({
-    required this.deviceBloodPressure,
-    required this.serviceDevices,
-    required this.valueDefaultSBP,
-    required this.valueDefaultDBP,
-    });
+  DeviceBloodPressure();
+
+    static DeviceBloodPressure getInstance() {
+    _deviceBPClass ??= DeviceBloodPressure();
+    return _deviceBPClass!;
+  }
 
   BluetoothDevice getDeviceBloodPressure(){
-    return deviceBloodPressure;
+    return deviceBloodPressure!;
+  }
+
+  void setDeviceBloodPressure(BluetoothDevice blueDevice){
+     deviceBloodPressure = blueDevice;
+     isDeviceBloodPressureSetted = true;
   }
 
   List<BluetoothCharacteristic> getServiceDevices(){
@@ -25,7 +34,7 @@ class DeviceBloodPressure{
   }
 
   void setServicesDevices(){
-    for(var service in deviceBloodPressure.servicesList!){
+    for(var service in deviceBloodPressure!.servicesList!){
       for(var caracter in service.characteristics){
         print(caracter.characteristicUuid);
       }
@@ -43,6 +52,14 @@ class DeviceBloodPressure{
         }
         ).toList();
     }
+  }
+
+  void setValueWaveForm(List<int> newValues){
+    valueWaveForm.addAll(newValues);
+  }
+
+  List<int> getValueWaveForm(){
+    return valueWaveForm;
   }
 
   String getValueSBP(){

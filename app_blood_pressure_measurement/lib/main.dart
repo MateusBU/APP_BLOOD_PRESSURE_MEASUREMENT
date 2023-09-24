@@ -14,6 +14,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'screens/main_device_screen.dart';
 import 'widgets.dart';
 
+import 'models/deviceBloodPressure.dart';
+
 final snackBarKeyA = GlobalKey<ScaffoldMessengerState>();
 final snackBarKeyB = GlobalKey<ScaffoldMessengerState>();
 final snackBarKeyC = GlobalKey<ScaffoldMessengerState>();
@@ -166,18 +168,22 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                             color: Color.fromARGB(255, 0, 0, 0)
                                           ),
                                         ),
-                                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                                          builder: (context) => MainDeviceScreen(
-                                            device: d,
-                                            isConnectingOrDisconnecting : isConnectingOrDisconnecting,
-                                            snackBarKeyA: snackBarKeyA,
-                                            snackBarKeyB :snackBarKeyB, 
-                                            snackBarKeyC: snackBarKeyC
-                                          ),
-                                          // builder:  (context) => DeviceScreen(device: d),
-                                          settings: const RouteSettings(name: '/deviceScreen')
-                                        )
-                                      ),
+                                      onPressed: () {
+                                        DeviceBloodPressure.getInstance().setDeviceBloodPressure(d);
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (context) => MainDeviceScreen(
+                                              //device: d,
+                                              isConnectingOrDisconnecting : isConnectingOrDisconnecting,
+                                              snackBarKeyA: snackBarKeyA,
+                                              snackBarKeyB :snackBarKeyB, 
+                                              snackBarKeyC: snackBarKeyC
+                                            ),
+                                            // builder:  (context) => DeviceScreen(device: d),
+                                            settings: const RouteSettings(name: '/deviceScreen')
+                                          )
+                                        );
+                                      }
                                     );
                                   }
                                   if (snapshot.data == BluetoothConnectionState.disconnected) {
@@ -201,8 +207,9 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                                   isConnectingOrDisconnecting[d.remoteId] ??= ValueNotifier(false);
                                                   isConnectingOrDisconnecting[d.remoteId]!.value = false;
                                                 });
+                                                DeviceBloodPressure.getInstance().setDeviceBloodPressure(d);
                                                 return MainDeviceScreen(
-                                                  device: d,
+                                                  //device: d,
                                                   isConnectingOrDisconnecting : isConnectingOrDisconnecting,
                                                   snackBarKeyA: snackBarKeyA,
                                                   snackBarKeyB :snackBarKeyB, 
@@ -278,8 +285,10 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                     isConnectingOrDisconnecting[r.device.remoteId] ??= ValueNotifier(false);
                                     isConnectingOrDisconnecting[r.device.remoteId]!.value = false;
                                   });
+                                  
+                                  DeviceBloodPressure.getInstance().setDeviceBloodPressure(r.device);
                                   return MainDeviceScreen(
-                                    device: r.device,
+                                    //device: r.device,
                                     isConnectingOrDisconnecting : isConnectingOrDisconnecting,
                                     snackBarKeyA: snackBarKeyA,
                                     snackBarKeyB :snackBarKeyB, 
