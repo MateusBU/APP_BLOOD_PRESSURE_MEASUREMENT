@@ -22,46 +22,51 @@ class ChartWaveFormScreen extends StatelessWidget {
     int frequency = 0;
     List<FlSpot> spot = [];
     for(int index = 0; index < arrayBP.length; index++){
-      spot.add(FlSpot(arrayBP[index]/1.0, frequency/1.0));
+      spot.add(FlSpot(frequency/1.0,arrayBP[index]/1.0));
       frequency += freq;
+       print(arrayBP[index]/1.0);
     }
     return spot;
   }
 
   @override
   Widget build(BuildContext context) {
-    return LineChart(
-      LineChartData(
-        gridData: const FlGridData(
-          show: false,
-        ),
-        titlesData: const FlTitlesData(
-          show: false,
-        ),
-        borderData: FlBorderData(
-          show: true,
-          border: Border.all(
-            color: const Color(0xff37434d),
-            width: 1,
+    return SizedBox(
+      height: 500,
+      
+      child: LineChart(
+        LineChartData(
+          gridData: const FlGridData(
+            show: true,
           ),
-        ),
-        minX: 0,
-        maxX: 6,    //todo ver o máximo
-        minY: minBPValue/1.0,
-        maxY: maxBPValue/1.0,
-        lineBarsData: [
-          LineChartBarData(
-            spots: getSpotForChart(),
-            isCurved: true,
-            color: const Color.fromARGB(255, 256, 24, 47),
-            dotData: const FlDotData(
-              show: false,
-            ),
-            belowBarData: BarAreaData(
-              show: false,
+          titlesData: const FlTitlesData(
+            show: true,
+          ),
+          borderData: FlBorderData(
+            show: true,
+            border: Border.all(
+              color: const Color(0xff37434d),
+              width: 1,
             ),
           ),
-        ],
+          minX: 0,
+          maxX: (arrayBP.length+5)/1.0,    //todo ver o máximo
+          minY: minBPValue/1.0,
+          maxY: maxBPValue/1.0,
+          lineBarsData: [
+            LineChartBarData(
+              spots: getSpotForChart(),
+              isCurved: true,
+              color: const Color.fromARGB(255, 256, 24, 47),
+              dotData: const FlDotData(
+                show: false,
+              ),
+              belowBarData: BarAreaData(
+                show: false,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
