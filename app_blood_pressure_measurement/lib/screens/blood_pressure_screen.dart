@@ -149,6 +149,7 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
             }
             else if (commandData == 71){
               DeviceBloodPressure.getInstance().setFrequencyEachValue(dataFreq);
+              
               setState(() {
                 minBPValue = DeviceBloodPressure.getInstance().getMinValueFromValueWaveForm()-10;
                 maxBPValue = DeviceBloodPressure.getInstance().getMaxValueFromValueWaveForm()+10;
@@ -168,9 +169,17 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
     }   
   }
 
+  Future<void> saveBloodPressureWaveForm() async{
+    /*Le o json, adiciona os itens e salva novamente */
+    await DeviceBloodPressure.getInstance().getListJsonFromPath();
+    DeviceBloodPressure.getInstance().addNewItemsListJson();
+    await DeviceBloodPressure.getInstance().saveListJsonToPath();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: AppBar(
           centerTitle: true,
@@ -180,7 +189,7 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
             ),
           ),
           backgroundColor: Colors.cyanAccent[700],
-          title: const Text('Line Chart Example'),
+          title: Text(DeviceBloodPressure.getInstance().getDeviceBloodPressure().localName.toUpperCase()),
         ),
         body:_isValuesReady ? Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -203,11 +212,13 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
                 ),
               ),
             ),
-            const Row(
+            Row(
               children: [
                 ElevatedButton(
-                  onPressed: null,
-                  child: Text("Salvar"),
+                  onPressed: () async{
+                    await saveBloodPressureWaveForm();
+                  },
+                  child: const Text("SALVAR"),
                 ),
               ],
             ),
@@ -223,7 +234,8 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
                 elevation: 4.0,
                 child: Padding(
                   padding: EdgeInsets.all(8.0),
-                  child: Text("ESPERANDO PELOS VALORES",
+                  child: Text(
+                    "ESPERANDO PELOS VALORES",
                     style: TextStyle(
                       fontSize: 24.0,
                       fontWeight: FontWeight.bold,
@@ -232,7 +244,7 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
                   ),
                 ),
               ),
-              SizedBox(height: 100,),
+              SizedBox(height: 100),
               CircularProgressIndicator(),
             ]
           ),

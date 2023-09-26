@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'screens/historical_blood_pressure.dart';
 import 'screens/main_device_screen.dart';
 import 'widgets.dart';
 
@@ -252,7 +253,52 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
             ),
           ),
         ),
-        drawer: const Drawer(),
+        drawer: Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: <Widget>[
+              const DrawerHeader(
+                decoration: BoxDecoration(
+                  color: Color.fromARGB(255, 190, 149, 187),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.white,
+                      width: 2.0, // Define a largura da borda
+                    ),
+                  ),
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(30),
+                  ),
+                ),
+                child: Text(
+                  'Menu',
+                  style: TextStyle(
+                    fontSize: 24.0,
+                    fontWeight: FontWeight.bold,
+                    color:  Color.fromARGB(255, 73, 2, 111),
+                  ),
+                ),
+              ),
+              ListTile(
+                title: const Text(
+                  'Histórico',
+                  style: TextStyle(
+                    fontSize: 24.0,
+                    fontWeight: FontWeight.bold,
+                    color:  Color.fromARGB(255, 73, 2, 111),
+                  ),
+                ),
+                onTap: () {
+                  Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => HistoricalBloodPressure(),
+                  )
+                );
+                },
+              ),
+            ],
+          ),
+        ),
         body: RefreshIndicator(
           onRefresh: () {
             setState(() {}); // force refresh of connectedSystemDevices

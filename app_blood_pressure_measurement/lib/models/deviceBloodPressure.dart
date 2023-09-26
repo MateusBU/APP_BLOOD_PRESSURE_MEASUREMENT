@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:path_provider/path_provider.dart';
 
 class DeviceBloodPressure{
   static DeviceBloodPressure? _deviceBPClass;
@@ -12,6 +14,7 @@ class DeviceBloodPressure{
   String valueDefaultDBP = '0';
   List<int> valueWaveForm = [];
   int frequencyEachValue = 0;
+  List<Map<String, dynamic>> listJson = [];
 
   DeviceBloodPressure();
 
@@ -92,5 +95,47 @@ class DeviceBloodPressure{
 
   void setValueDBP(String value){
     valueDefaultDBP = value;
+  }
+
+  Future<void> getListJsonFromPath() async {
+    final directory = await getApplicationDocumentsDirectory();
+    final file = File('${directory.path}/dataBP.json');
+
+    try {
+      // Lê o conteúdo do arquivo JSON
+      final jsonString = await file.readAsString();
+      // Converte a string JSON de volta para um mapa
+      listJson = jsonDecode(jsonString);
+    } 
+    catch (e) {
+      // Trata qualquer erro que possa ocorrer durante a operação de leitura
+      print('Erro ao ler JSON: $e');
+    }
+  }
+
+  void addNewItemsListJson(){
+    DateTime dataAtual = DateTime.now();
+    Map<String, dynamic> newItem = {
+      'data': '${dataAtual.day}/${dataAtual.month}/${dataAtual.year}',
+      'valorDBP': valueDefaultDBP,
+      'valorSBP': valueDefaultSBP,
+      'ondaDePressao': getValueWaveForm(),
+      'frequencia': frequencyEachValue,
+    };
+    listJson.add(newItem);
+  }
+
+  Future<void> saveListJsonToPath()async{
+    final directory = await getApplicationDocumentsDirectory();
+    final file = File('${directory.path}/dataBP.json');
+    if (await file.exists()) {
+        // Converta a lista atualizada em uma string JSON
+        String listaJsonString = jsonEncode(listJson);
+        // Salve a lista atualizada no arquivo
+        await file.writeAsString(listaJsonString);
+        print('Item adicionado e arquivo atualizado com sucesso.');
+      } else {
+        print('O arquivo JSON não existe. Crie-o primeiro.');
+      }
   }
 }
