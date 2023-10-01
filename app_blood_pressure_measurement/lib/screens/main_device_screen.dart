@@ -55,6 +55,9 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
   late Stream<List<int>> _valueStream;
   List<int> _currentValue = [];
 
+  final List<int> _crc32Table = [];
+  int crc32 = 0xFFFFFFFF;
+
 
   @override
   void initState () {
@@ -72,14 +75,15 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
             settings: const RouteSettings(name: '/BloodPressureScreen')
           ));    
         }
-  });
+    });
+    protocolCrc32InitTable();
   }
 
-  @override
-  void dispose(){
-    print("change screen");
-    super.dispose();
-  }
+  // @override
+  // void dispose(){
+  //   print("change screen");
+  //   super.dispose();
+  // }
 
 
   _asyncMethod() async {
@@ -94,6 +98,27 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
       } catch (e) {
       print("Fail");
     }
+  }
+
+  /*---CRC32--- */
+  // Inicialização da tabela de lookup
+  void protocolCrc32InitTable(){
+      int crc;
+      for (int i = 0; i < 256; i++) {
+          crc = i;
+          for (int j = 0; j < 8; j++) {
+              if ((crc & 1) >= 1) {
+                  crc = (crc >> 1) ^ 0xEDB88320; // Valor mágico para o CRC-32
+              } else {
+                  crc = crc >> 1;
+              }
+          }
+          _crc32Table.add(crc);
+      }
+  }
+
+  void protocolcrc32Calculate(int crc, int value) {
+      crc32 = (crc >> 8) ^ _crc32Table[(crc ^ value) & 0xFF];
   }
 
   /*---BP VALUES */
@@ -139,38 +164,40 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
   List<int> setBloodPressureArray(List<int> listOfDBP, List<int> listOfSBP){
     List<int> bloodPressureArray = [];
     //List<int> checkSumArray = [];
-    int checkSum = 0;//, decimalNumber = 255;
+    int checkSum = 0;
     String checkSumHex;
+    crc32 = 0xFFFFFFFF;//, decimalNumber = 255;
 
     bloodPressureArray.add(0x02); //STX
     bloodPressureArray.add(0x70); //p
-    checkSum ^= 0x70;
+    protocolcrc32Calculate(crc32,0x70);
     bloodPressureArray.add(0x62); //b
-    checkSum ^= 0x62;
+    protocolcrc32Calculate(crc32,0x62);
     bloodPressureArray.add(0x42); //B
-    checkSum ^= 0x42;
+    protocolcrc32Calculate(crc32,0x42);
     bloodPressureArray.add(0x5B); //[
-    checkSum ^= 0x5B;
+    protocolcrc32Calculate(crc32,0x5B);
 
     for(int index = 0; index < listOfDBP.length; index++){
       bloodPressureArray.add(listOfDBP[index] + 0x30);
-      checkSum ^= listOfDBP[index] + 0x30;
+      protocolcrc32Calculate(crc32,listOfDBP[index] + 0x30);
     }
     
     bloodPressureArray.add(0x2C); //,
-    checkSum ^= 0x2C;
+    protocolcrc32Calculate(crc32,0x2C);
 
     for(int index = 0; index < listOfSBP.length; index++){
       bloodPressureArray.add(listOfSBP[index] + 0x30);
-      checkSum ^= listOfSBP[index] + 0x30;
+      
+      protocolcrc32Calculate(crc32,listOfSBP[index] + 0x30);
     }
 
     bloodPressureArray.add(0x5D); //]
-    checkSum ^= 0x5D;
-    print(" CHECKSUM $checkSum");
+    protocolcrc32Calculate(crc32,0x5D);
 
-    checkSumHex = checkSum.toRadixString(16);
-    for(int index = 0; index < checkSumHex.length; index++){
+    crc32 = 0xFFFFFFFF - crc32;
+    checkSumHex = crc32.toRadixString(16);
+    for(int index = 0; index < 4; index++){
       bloodPressureArray.add(checkSumHex[index].toUpperCase().codeUnitAt(0));
     }
     bloodPressureArray.add(0x03); //ETX
@@ -217,7 +244,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
         break;
 
         case BluetoothData.addressEsp:
-          checksum ^= currentValue[index];
+          protocolcrc32Calculate(crc32,currentValue[index]);
           if(currentValue[index] == 98){
             blueData = BluetoothData.addressApp;
             index++;
@@ -228,7 +255,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
         break;
 
         case BluetoothData.addressApp:
-          checksum ^= currentValue[index];
+          protocolcrc32Calculate(crc32,currentValue[index]);
           if(currentValue[index] == 112){
             blueData = BluetoothData.command;
             index++;
@@ -239,7 +266,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
         break;
 
         case BluetoothData.command:
-          checksum ^= currentValue[index];
+          protocolcrc32Calculate(crc32,currentValue[index]);
             if(currentValue[index] == 70){
               blueData = BluetoothData.checksum;
             }
@@ -250,21 +277,21 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
         break;
 
         case BluetoothData.dataBluetooth:
-          checksum ^= currentValue[index];
+          protocolcrc32Calculate(crc32,currentValue[index]);
           blueData = BluetoothData.checksum;
           index++;
         break;
 
         case BluetoothData.checksum:
-          checksumString = checksum.toRadixString(16);
-          if(checksumString[0].toUpperCase().codeUnitAt(0) != currentValue[index]){
-            return false;
+          
+          crc32 = 0xFFFFFFFF - crc32;
+          checksumString = crc32.toRadixString(16);
+          for(int i = 0; i < checksumString.length; i++){
+            if(checksumString[0].toUpperCase().codeUnitAt(0) != currentValue[index]){
+              return false;
+            }
+            index++;
           }
-          index++;
-          if(checksumString[1].toUpperCase().codeUnitAt(0) != currentValue[index]){
-            return false;
-          }
-          index++;
           blueData = BluetoothData.etx;
         break;
 
@@ -360,7 +387,24 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
 
   /*----BUTTONS--- */
   void pressedStart(BuildContext context){
-    List<int> sendStartArray = [0x02, 0x70, 0x62, 0x41, 0x35, 0x33, 0x03];
+    crc32 = 0xFFFFFFFF;
+    String checkSumHex;
+    List<int> sendStartArray = [];
+    sendStartArray.add(0x02); //STX
+    sendStartArray.add(0x70); //p
+    protocolcrc32Calculate(crc32,0x70);
+    sendStartArray.add(0x62); //b
+    protocolcrc32Calculate(crc32,0x62);
+    sendStartArray.add(0x41); //A
+    protocolcrc32Calculate(crc32,0x41);
+
+    crc32 = 0xFFFFFFFF - crc32;
+    checkSumHex = crc32.toRadixString(16);
+    for(int index = 0; index < checkSumHex.length; index++){
+      sendStartArray.add(checkSumHex[index].toUpperCase().codeUnitAt(0));
+    }
+    sendStartArray.add(0x03); //ETX
+
     for(BluetoothCharacteristic c in DeviceBloodPressure.getInstance().getServiceDevices()){
       if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
         c.write(sendStartArray, withoutResponse: c.properties.writeWithoutResponse);
@@ -375,8 +419,25 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
 
   void calibrateSensor(BuildContext context){
     //start calibrate
+    crc32 = 0xFFFFFFFF;
+    String checkSumHex;
     if(!widget._calibrateStarted){
-      List<int> sendCalibrateArray = [0x02, 0x70, 0x62, 0x43, 0x35, 0x31, 0x03];
+      List<int> sendCalibrateArray = [];
+      sendCalibrateArray.add(0x02); //STX
+      sendCalibrateArray.add(0x70); //p
+      protocolcrc32Calculate(crc32,0x70);
+      sendCalibrateArray.add(0x62); //b
+      protocolcrc32Calculate(crc32,0x62);
+      sendCalibrateArray.add(0x43); //C
+      protocolcrc32Calculate(crc32,0x43);
+
+      crc32 = 0xFFFFFFFF - crc32;
+      checkSumHex = crc32.toRadixString(16);
+      for(int index = 0; index < checkSumHex.length; index++){
+        sendCalibrateArray.add(checkSumHex[index].toUpperCase().codeUnitAt(0));
+      }
+      sendCalibrateArray.add(0x03); //ETX
+
       for(BluetoothCharacteristic c in DeviceBloodPressure.getInstance().getServiceDevices()){
         if(c.characteristicUuid.toString() == "32550a96-8bf4-11e7-bb31-be2e44b06b34"){
           c.write(sendCalibrateArray, withoutResponse: c.properties.writeWithoutResponse);
@@ -400,15 +461,40 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
     ).then((value){
         if(value != null){
           //_handleMenuItemSelection = value;
-          List<int> sendCalibrateArray;
+          List<int> sendCalibrateArray = [];
+          crc32 = 0xFFFFFFFF;
           if(value == '60'){
-            sendCalibrateArray = [0x02, 0x70, 0x62, 0x44, 0x35, 0x36, 0x03];
+            sendCalibrateArray.add(0x02); //STX
+            sendCalibrateArray.add(0x70); //p
+            protocolcrc32Calculate(crc32,0x70);
+            sendCalibrateArray.add(0x62); //b
+            protocolcrc32Calculate(crc32,0x62);
+            sendCalibrateArray.add(0x44); //D
+            protocolcrc32Calculate(crc32,0x44);
+            crc32 = 0xFFFFFFFF - crc32;
+            checkSumHex = crc32.toRadixString(16);
+            for(int index = 0; index < checkSumHex.length; index++){
+              sendCalibrateArray.add(checkSumHex[index].toUpperCase().codeUnitAt(0));
+            }
+            sendCalibrateArray.add(0x03); //ETX
             setState(() {
               widget._calibrateStarted = true;              
             });
           }
           else{
-            sendCalibrateArray = [0x02, 0x70, 0x62, 0x45, 0x35, 0x37, 0x03];
+            sendCalibrateArray.add(0x02); //STX
+            sendCalibrateArray.add(0x70); //p
+            protocolcrc32Calculate(crc32,0x70);
+            sendCalibrateArray.add(0x62); //b
+            protocolcrc32Calculate(crc32,0x62);
+            sendCalibrateArray.add(0x45); //E
+            protocolcrc32Calculate(crc32,0x45);
+            crc32 = 0xFFFFFFFF - crc32;
+            checkSumHex = crc32.toRadixString(16);
+            for(int index = 0; index < checkSumHex.length; index++){
+              sendCalibrateArray.add(checkSumHex[index].toUpperCase().codeUnitAt(0));
+            }
+            sendCalibrateArray.add(0x03); //ETX
             setState(() {
               widget._calibrateStarted = false;              
             });
@@ -434,7 +520,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
     }
     else{
       listOfDBP =separateNumberToList(int.parse(valueDefaultBPD));
-      print(listOfDBP);
+      print("listOfDBP $listOfDBP");
     }
     if(widget._controllerSBP.text != '') {
       listOfSBP =separateNumberToList(int.parse(widget._controllerSBP.text));
@@ -442,7 +528,7 @@ class _MainDeviceScreenState extends State<MainDeviceScreen> {
     }
     else{
       listOfSBP =separateNumberToList(int.parse(valueDefaultBPS));
-      print(listOfSBP);
+      print("listOfSBP $listOfSBP");
     }
 
     sendBloodpressureArray = setBloodPressureArray(listOfDBP, listOfSBP);

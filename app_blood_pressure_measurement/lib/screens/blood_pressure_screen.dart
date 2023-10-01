@@ -39,6 +39,9 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
   List<int> arrayBP = [];
   int freq = 0;
 
+  final List<int> _crc32Table = [];
+  int crc32 = 0xFFFFFFFF;
+
   @override
   void initState(){
     super.initState();
@@ -47,7 +50,8 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
         if(_currentValueWaveForm.isNotEmpty){
           verifyReceiveDatWaveForm(_currentValueWaveForm);
         }
-      });
+    });
+    protocolCrc32InitTable();
   }
 
   startNotifierDataWaveForm(){
@@ -63,6 +67,27 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
     }
   }
 
+    /*---CRC32--- */
+  // Inicialização da tabela de lookup
+  void protocolCrc32InitTable(){
+      int crc;
+      for (int i = 0; i < 256; i++) {
+          crc = i;
+          for (int j = 0; j < 8; j++) {
+              if ((crc & 1) >= 1) {
+                  crc = (crc >> 1) ^ 0xEDB88320; // Valor mágico para o CRC-32
+              } else {
+                  crc = crc >> 1;
+              }
+          }
+          _crc32Table.add(crc);
+      }
+  }
+
+  void protocolcrc32Calculate(int crc, int value) {
+      crc32 = (crc >> 8) ^ _crc32Table[(crc ^ value) & 0xFF];
+  }
+
   void verifyReceiveDatWaveForm(List<int> currentValueWaveForm){
     BluetoothData blueData = BluetoothData.stx;
     int indexDataArray = _dataWaveForm.length, 
@@ -70,6 +95,7 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
         index = 0,
         commandData = 0,
         dataFreq = 0;
+    crc32 = 0xFFFFFFFF;//, decimalNumber = 255;
     String checksumString = '';
 
     while(blueData != BluetoothData.done){
@@ -85,7 +111,7 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
         break;
 
         case BluetoothData.addressEsp:
-          checksum ^= _currentValueWaveForm[index];
+          protocolcrc32Calculate(crc32,_currentValueWaveForm[index]);
           if(_currentValueWaveForm[index] == 98){
             blueData = BluetoothData.addressApp;
             index++;
@@ -96,7 +122,7 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
         break;
 
         case BluetoothData.addressApp:
-          checksum ^= _currentValueWaveForm[index];
+          protocolcrc32Calculate(crc32,_currentValueWaveForm[index]);
           if(_currentValueWaveForm[index] == 112){
             blueData = BluetoothData.command;
             index++;
@@ -104,8 +130,8 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
         break;
 
         case BluetoothData.command:
-          checksum ^= _currentValueWaveForm[index];
-            if(_currentValueWaveForm[index] == 70 || _currentValueWaveForm[index] == 71){ //F
+          protocolcrc32Calculate(crc32,_currentValueWaveForm[index]);
+            if(_currentValueWaveForm[index] == 71 || _currentValueWaveForm[index] == 72){ //G  H
               commandData = _currentValueWaveForm[index];
               blueData = BluetoothData.dataBluetooth;
             }
@@ -116,7 +142,7 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
         break;
 
         case BluetoothData.dataBluetooth:
-          checksum ^= _currentValueWaveForm[index];
+          protocolcrc32Calculate(crc32,_currentValueWaveForm[index]);
           if(_currentValueWaveForm[index] != 91 && _currentValueWaveForm[index] != 93) {
             // [ e ]
             _dataWaveForm[indexDataArray] = _currentValueWaveForm[index];
@@ -129,25 +155,26 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
         break;
 
         case BluetoothData.checksum:
-          checksumString = checksum.toRadixString(16);
-          if(checksumString[0].toUpperCase().codeUnitAt(0) != _currentValueWaveForm[index]){
-            blueData = BluetoothData.done;
-          }
-          index++;
-          if(checksumString[1].toUpperCase().codeUnitAt(0) != _currentValueWaveForm[index]){
-            blueData = BluetoothData.done;
-          }
-          index++;
+          
+          crc32 = 0xFFFFFFFF - crc32;
+          checksumString = crc32.toRadixString(16);
           blueData = BluetoothData.etx;
+          for(int i = 0; i < 4; i++){
+            if(checksumString[0].toUpperCase().codeUnitAt(0) != _currentValueWaveForm[index]){
+              blueData = BluetoothData.done;
+              break;
+            }
+            index++;
+          }
         break;
 
         case BluetoothData.etx:
           if(_currentValueWaveForm[index] == 3){
-            if(commandData == 70){
+            if(commandData == 71){   //G
               DeviceBloodPressure.getInstance().setValueWaveForm(_dataWaveForm);
               _dataWaveForm.clear();
             }
-            else if (commandData == 71){
+            else if (commandData == 72){  //H
               DeviceBloodPressure.getInstance().setFrequencyEachValue(dataFreq);
               
               setState(() {

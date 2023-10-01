@@ -27,9 +27,13 @@ class DeviceBloodPressure{
     return deviceBloodPressure!;
   }
 
-  void setDeviceBloodPressure(BluetoothDevice blueDevice){
+  Future<void> setDeviceBloodPressure(BluetoothDevice blueDevice) async{
      deviceBloodPressure = blueDevice;
      isDeviceBloodPressureSetted = true;
+  }
+
+  Future<void> setMTU() async{
+     await deviceBloodPressure!.requestMtu(50);
   }
 
   List<BluetoothCharacteristic> getServiceDevices(){

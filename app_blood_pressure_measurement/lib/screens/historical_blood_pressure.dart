@@ -9,21 +9,21 @@ class HistoricalBloodPressure extends StatelessWidget {
       'data': '25/02/2013',
       'valorDBP': 60,
       'valorSBP': 120,
-      'ondaDePressao': [65,70,80,90,91,92,100],
+      'ondaDePressao': [65,71,75,88,96,99,100],
       'frequencia': 1,
     },
     {
       'data': '26/08/2013',
       'valorDBP': 70,
       'valorSBP': 125,
-      'ondaDePressao': [70,80,90,91,92,100,120,121,120,110],
+      'ondaDePressao': [70,80,93,91,95,100,120,121,120,110],
       'frequencia': 1,
     },
     {
       'data': '10/09/2013',
       'valorDBP': 60,
       'valorSBP': 120,
-      'ondaDePressao': [65,70,80,85,86,82,89,100,101,102],
+      'ondaDePressao': [71,78,82,87,86,82,89,100,101,102],
       'frequencia': 1,
     }
   ];
@@ -57,17 +57,18 @@ class HistoricalBloodPressure extends StatelessWidget {
         body: PageView.builder(
           itemCount: listaTeste.length,
           itemBuilder: (context, index) {
+            final invertedIndex = listaTeste.length - 1 - index;
             return Container(
               child: Column(
                 children: [
-                  Text(listaTeste[index]['data']),
+                  Text(listaTeste[invertedIndex]['data']),
                   const SizedBox(height: 20), 
                   Center(
                     child: ChartWaveFormScreen(
-                      minBPValue: listaTeste[index]['valorDBP']-10, 
-                      maxBPValue: listaTeste[index]['valorSBP']+10,
-                      arrayBP: listaTeste[index]['ondaDePressao'],
-                      freq: listaTeste[index]['frequencia'],
+                      minBPValue: listaTeste[invertedIndex]['valorDBP']-10, 
+                      maxBPValue: listaTeste[invertedIndex]['valorSBP']+10,
+                      arrayBP: listaTeste[invertedIndex]['ondaDePressao'],
+                      freq: listaTeste[invertedIndex]['frequencia'],
                     ),
                   ),
                 ]

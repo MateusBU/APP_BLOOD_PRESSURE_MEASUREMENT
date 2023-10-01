@@ -171,6 +171,7 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                         ),
                                       onPressed: () {
                                         DeviceBloodPressure.getInstance().setDeviceBloodPressure(d);
+                                        // d.requestMtu(50);
                                         Navigator.of(context).push(
                                           MaterialPageRoute(
                                             builder: (context) => MainDeviceScreen(
@@ -209,6 +210,7 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                                   isConnectingOrDisconnecting[d.remoteId]!.value = false;
                                                 });
                                                 DeviceBloodPressure.getInstance().setDeviceBloodPressure(d);
+                                                // d.requestMtu(50);
                                                 return MainDeviceScreen(
                                                   //device: d,
                                                   isConnectingOrDisconnecting : isConnectingOrDisconnecting,
@@ -333,6 +335,7 @@ class _FindDevicesScreenState extends State<FindDevicesScreen> {
                                   });
                                   
                                   DeviceBloodPressure.getInstance().setDeviceBloodPressure(r.device);
+                                  // r.device.requestMtu(50);
                                   return MainDeviceScreen(
                                     //device: r.device,
                                     isConnectingOrDisconnecting : isConnectingOrDisconnecting,
@@ -698,7 +701,7 @@ class DeviceScreen extends StatelessWidget {
                       icon: const Icon(Icons.edit),
                       onPressed: () async {
                         try {
-                          await device.requestMtu(223);
+                          await device.requestMtu(50);
                           final snackBar = snackBarGood("Request Mtu: Success");
                           snackBarKeyC.currentState?.removeCurrentSnackBar();
                           snackBarKeyC.currentState?.showSnackBar(snackBar);
