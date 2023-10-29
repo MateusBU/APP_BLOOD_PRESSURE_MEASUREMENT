@@ -34,8 +34,10 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
   final List<int> _dataWaveForm = [];
   bool _isValuesReady = false;
 
-  int minBPValue = 0;
-  int maxBPValue = 0;
+  int minBPValue = 0,
+      maxBPValue = 0,
+      systolicValue = 0,
+      diastolicValue = 0;
   List<int> arrayBP = [];
   int freq = 0;
 
@@ -94,9 +96,13 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
         checksum = 0, 
         index = 0,
         commandData = 0,
+        firstNumberBp = 0,
+        indexDataBp = 0,
         dataFreq = 0;
     crc32 = 0xFFFFFFFF;//, decimalNumber = 255;
     String checksumString = '';
+
+    print('Buffer recebido: $_currentValueWaveForm');
 
     while(blueData != BluetoothData.done){
       switch(blueData){
@@ -131,7 +137,7 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
 
         case BluetoothData.command:
           protocolcrc32Calculate(crc32,_currentValueWaveForm[index]);
-            if(_currentValueWaveForm[index] == 71 || _currentValueWaveForm[index] == 72){ //G  H
+            if(_currentValueWaveForm[index] >= 71 && _currentValueWaveForm[index] <= 74){ //G  H I J
               commandData = _currentValueWaveForm[index];
               blueData = BluetoothData.dataBluetooth;
             }
@@ -143,10 +149,66 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
 
         case BluetoothData.dataBluetooth:
           protocolcrc32Calculate(crc32,_currentValueWaveForm[index]);
-          if(_currentValueWaveForm[index] != 91 && _currentValueWaveForm[index] != 93) {
-            // [ e ]
-            _dataWaveForm[indexDataArray] = _currentValueWaveForm[index];
-            dataFreq = _currentValueWaveForm[index];
+          if(_currentValueWaveForm[index] != 91 && _currentValueWaveForm[index] != 93) { //91 == [  e 93 == ]
+            
+            if(commandData == 71){ //wave form 'G'
+              _dataWaveForm[indexDataArray] = _currentValueWaveForm[index];
+            }
+            else if(commandData == 72){  //Systolic 'H'
+              if(indexDataBp == 0){
+                firstNumberBp = _currentValueWaveForm[index] - 0x30;
+                indexDataBp++;
+                if(firstNumberBp <= 2){
+                  systolicValue = (_currentValueWaveForm[index] - 0x30)*100;
+                }
+                else{
+                  systolicValue = (_currentValueWaveForm[index] - 0x30)*10;
+                }  
+              }
+              else if(indexDataBp == 1){
+                indexDataBp++;
+                if(firstNumberBp <= 2){
+                  systolicValue += (_currentValueWaveForm[index] - 0x30)*10;
+                }
+                else{
+                  systolicValue += (_currentValueWaveForm[index] - 0x30);
+                }
+              }
+              else if(indexDataBp == 2){
+                indexDataBp++;
+                if(firstNumberBp <= 2){
+                  systolicValue += _currentValueWaveForm[index] - 0x30;
+                }
+              }
+              print('systolicValue: $systolicValue');
+            }
+            else if(commandData == 73){  //Diastolic 'I'
+              if(indexDataBp == 0){
+                firstNumberBp = _currentValueWaveForm[index] - 0x30;
+                indexDataBp++;
+                if(firstNumberBp <= 2){
+                  diastolicValue = (_currentValueWaveForm[index] - 0x30)*100;
+                }
+                else{
+                  diastolicValue = (_currentValueWaveForm[index] - 0x30)*10;
+                }  
+              }
+              else if(indexDataBp == 1){
+                indexDataBp++;
+                if(firstNumberBp <= 2){
+                  diastolicValue += (_currentValueWaveForm[index] - 0x30)*10;
+                }
+                else{
+                  diastolicValue += (_currentValueWaveForm[index] - 0x30);
+                }
+              }
+              else if(indexDataBp == 2){
+                indexDataBp++;
+                if(firstNumberBp <= 2){
+                  diastolicValue += _currentValueWaveForm[index] - 0x30;
+                }
+              }
+            }
           }
           else if(_currentValueWaveForm[index] == 93){
             blueData = BluetoothData.checksum;
@@ -159,8 +221,11 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
           crc32 = 0xFFFFFFFF - crc32;
           checksumString = crc32.toRadixString(16);
           blueData = BluetoothData.etx;
-          for(int i = 0; i < 4; i++){
-            if(checksumString[0].toUpperCase().codeUnitAt(0) != _currentValueWaveForm[index]){
+        print('CHECKSUM RECEBIDO: $checksumString');
+          for(int i = 0; i < 8; i++){
+              print('_currentValueWaveForm[index]: ${_currentValueWaveForm[index]}');
+              print('checksumString: ${checksumString[i].toUpperCase().codeUnitAt(0)}');
+            if(checksumString[i].toUpperCase().codeUnitAt(0) != _currentValueWaveForm[index]){
               blueData = BluetoothData.done;
               break;
             }
@@ -170,11 +235,19 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
 
         case BluetoothData.etx:
           if(_currentValueWaveForm[index] == 3){
-            if(commandData == 71){   //G
+            if(commandData == 71){   // Waveform 'G'
               DeviceBloodPressure.getInstance().setValueWaveForm(_dataWaveForm);
               _dataWaveForm.clear();
             }
-            else if (commandData == 72){  //H
+            else if(commandData == 72){  //Systolic 'H'
+              DeviceBloodPressure.getInstance().setValueSBP(systolicValue.toString());
+              print('systolicValue: $systolicValue');
+            }
+            else if(commandData == 73){  //Diastolic 'I'
+              DeviceBloodPressure.getInstance().setValueDBP(diastolicValue.toString());
+              print('diastolicValue: $diastolicValue');
+            }
+            else if (commandData == 74){  //freq 'J'
               DeviceBloodPressure.getInstance().setFrequencyEachValue(dataFreq);
               
               setState(() {
@@ -241,6 +314,7 @@ class _BloodPressureScreenState extends State<BloodPressureScreen> {
             ),
             Row(
               children: [
+                Text('Pressão: $diastolicValue:$systolicValue'),
                 ElevatedButton(
                   onPressed: () async{
                     await saveBloodPressureWaveForm();

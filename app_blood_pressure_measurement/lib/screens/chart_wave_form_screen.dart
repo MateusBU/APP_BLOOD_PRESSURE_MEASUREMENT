@@ -24,7 +24,7 @@ class ChartWaveFormScreen extends StatelessWidget {
     for(int index = 0; index < arrayBP.length; index++){
       spot.add(FlSpot(frequency/1.0,arrayBP[index]/1.0));
       frequency += freq;
-       print(arrayBP[index]/1.0);
+       //print(arrayBP[index]/1.0);
     }
     return spot;
   }
